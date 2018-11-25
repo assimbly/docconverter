@@ -72,6 +72,22 @@ public final class DocConverter {
 		}
 	}
 
+	public static String convertUriToString(URI uri) throws Exception {
+
+		URL url = uri.toURL(); // get URL from your uri object
+		InputStream stream = url.openStream();
+
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		DocumentBuilder builder = factory.newDocumentBuilder();
+
+		Document doc = builder.parse(stream);
+		
+		String docAsString = convertDocToString(doc); 
+		
+		return docAsString;
+	}
+
+	
 	public static Document convertUriToDoc(URI uri) throws Exception {
 
 		URL url = uri.toURL(); // get URL from your uri object
@@ -81,15 +97,6 @@ public final class DocConverter {
 		DocumentBuilder builder = factory.newDocumentBuilder();
 
 		return builder.parse(stream);
-	}
-
-	public static String convertJsonToXml(String json) {
-
-		JSONObject jsonObj = new JSONObject(json);
-		String xml = XML.toString(jsonObj);
-
-		return xml;
-
 	}
 
 	public static String convertXmlToJson(String xml) {
@@ -111,6 +118,24 @@ public final class DocConverter {
 		return yaml;
 	}
 
+	
+	public static String convertJsonToXml(String json) {
+
+		JSONObject jsonObj = new JSONObject(json);
+		String xml = XML.toString(jsonObj);
+
+		return xml;
+
+	}
+
+	public static String convertJSONtoYAML(String json) throws IOException {
+
+		JsonNode jsonNodeTree = new ObjectMapper().readTree(json);
+		yaml = new YAMLMapper().writeValueAsString(jsonNodeTree);
+
+		return yaml;
+	}
+	
 	public static String convertYAMLtoXML(String yaml) throws JsonParseException, JsonMappingException, IOException {
 
 		ObjectMapper yamlReader = new ObjectMapper(new YAMLFactory());
@@ -125,12 +150,15 @@ public final class DocConverter {
 		return xml;
 	}
 
-	public static String convertJSONtoYAML(String json) throws IOException {
+	public static String convertYAMLtoJSON(String yaml) throws JsonParseException, JsonMappingException, IOException {
 
-		JsonNode jsonNodeTree = new ObjectMapper().readTree(json);
-		yaml = new YAMLMapper().writeValueAsString(jsonNodeTree);
+		ObjectMapper yamlReader = new ObjectMapper(new YAMLFactory());
+		Object obj = yamlReader.readValue(yaml, Object.class);
 
-		return yaml;
-	}
+		ObjectMapper jsonWriter = new ObjectMapper();
+		json = jsonWriter.writeValueAsString(obj);
+
+		return json;
+	}	
 
 }
