@@ -2,13 +2,30 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>org.assimbly</groupId>
+	<groupId>io.github.assimbly</groupId>
 	<artifactId>docconverter</artifactId>
 	<packaging>jar</packaging>
 
-	<name>org.assimbly.docconverter</name>
+	<name>docconverter</name>
+	<description>library to convert between XML, JSON and YAML documents</description>
 	<version>1.0.0</version>
 	<url>https://github.com/assimbly</url>
+
+	<scm>
+		<url>https://github.com/assimbly/docconverter</url>
+		<connection>scm:git:git://github.com/assimbly/docconverter.git</connection>
+		<developerConnection>scm:git:git@github.com/assimbly/docconverter.git</developerConnection>
+	</scm>
+  
+  	<developers>
+    	<developer>
+      <id>assimbly</id>
+      <name>Raymond Meester</name>
+      <email>raymondmeester@gmail.com</email>
+      <url>https://github.com/assimbly</url>
+      <organization>ASSIMBLY</organization>
+    </developer>
+  </developers>
 
   <licenses>
     <license>

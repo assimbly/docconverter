@@ -107,7 +107,7 @@ public final class DocConverter {
 		return json;
 	}
 
-	public static String convertXmltoYaml(String xml) throws IOException {
+	public static String convertXmlToYaml(String xml) throws IOException {
 
 		JSONObject xmlJSONObj = XML.toJSONObject(xml);
 		json = xmlJSONObj.toString();
@@ -128,7 +128,7 @@ public final class DocConverter {
 
 	}
 
-	public static String convertJsontoYaml(String json) throws IOException {
+	public static String convertJsonToYaml(String json) throws IOException {
 
 		JsonNode jsonNodeTree = new ObjectMapper().readTree(json);
 		yaml = new YAMLMapper().writeValueAsString(jsonNodeTree);
@@ -136,7 +136,7 @@ public final class DocConverter {
 		return yaml;
 	}
 	
-	public static String convertYamltoXml(String yaml) throws JsonParseException, JsonMappingException, IOException {
+	public static String convertYamlToXml(String yaml) throws JsonParseException, JsonMappingException, IOException {
 
 		ObjectMapper yamlReader = new ObjectMapper(new YAMLFactory());
 		Object obj = yamlReader.readValue(yaml, Object.class);
@@ -150,7 +150,7 @@ public final class DocConverter {
 		return xml;
 	}
 
-	public static String convertYamltoJson(String yaml) throws JsonParseException, JsonMappingException, IOException {
+	public static String convertYamlToJson(String yaml) throws JsonParseException, JsonMappingException, IOException {
 
 		ObjectMapper yamlReader = new ObjectMapper(new YAMLFactory());
 		Object obj = yamlReader.readValue(yaml, Object.class);
