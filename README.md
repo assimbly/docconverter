@@ -5,13 +5,13 @@ DocConverter is a Java library to convert between XML, JSON and YAML documents. 
 It takes a string as input in XML, JSON or YAML format and returns a string into another format
 
 	String json = DocConverter.convertXmlToJson(String xml) 
-	String yaml = DocConverter.convertXMLtoYAML(String xml)
+	String yaml = DocConverter.convertXmltoYaml(String xml)
 	
 	String xml = DocConverter.convertJsonToXml(String json)
-	String yaml = DocConverter.convertJSONtoYAML(String json)
+	String yaml = DocConverter.convertJsibtoYaml(String json)
 	
-	String xml = DocConverter.convertYAMLtoXML(String yaml)
-	String json = DocConverter.convertYAMLtoJSON(String yaml)
+	String xml = DocConverter.convertYamltoXml(String yaml)
+	String json = DocConverter.convertYamltoJson(String yaml)
 
 If you have don't have a string as input you can convert Stream, Document or URI first to a string
 
