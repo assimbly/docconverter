@@ -1,24 +1,55 @@
 # DocConverter
 
-DocConverter is a Java library to convert between XML, JSON and YAML documents. It's a utility class that can be called in static way.
+DocConverter is a Java library to convert between XML, JSON, CSV and YAML documents. It's a utility class that can be called in static way.
 
 It takes a string as input in XML, JSON or YAML format and returns a string into another format:
 
 	String json = DocConverter.convertXmlToJson(String xml) 
 	String yaml = DocConverter.convertXmltoYaml(String xml)
+	String csv = DocConverter.convertXmltoCsv(String xml)
 	
 	String xml = DocConverter.convertJsonToXml(String json)
 	String yaml = DocConverter.convertJsonToYaml(String json)
+	String csv = DocConverter.convertJsonToCsv(String json)
 	
 	String xml = DocConverter.convertYamlToXml(String yaml)
 	String json = DocConverter.convertYamlToJson(String yaml)
+	String csv = DocConverter.convertYamlToCsv(String yaml)
 
-If you have don't have a string as input you can convert Stream, Document or URI first to a string:
+	String xml = DocConverter.convertCsvToXml(String csv)
+	String json = DocConverter.convertCsvToJson(String csv)
+	String yaml = DocConverter.convertCsvToYaml(String csv)
 
-	DocConverter.convertStreamToString(InputStream is)
+If you have don't have a string as input you can convert several objects first to a string:
+
 	DocConverter.convertDocToString(Document doc)
+	DocConverter.convertFileToString(String path)
+	DocConverter.convertListToString(List<String> list) 
+	DocConverter.convertStreamToString(InputStream is)
 	DocConverter.convertUriToString(URI uri)	
 	
+	For example changing a file from XML to JSON:
+		
+	String xml = DocConverter.convertFileToString("C:/example.xml");
+	String json = DocConverter.convertXmlToJson(xml);
+	DocConverter.convertStringToFile("C:/example.json",json);
+		
+## CSV
+
+Conversion to csv expects a flat formats in following format:
+
+	<rows>
+		<row>
+			<item1>x</item1>
+			<item2>y</item2>
+		</row>		
+		<row>
+			<item1>z</item1>
+			<item2>b</item2>
+		</row>		
+	</rows>
+
+		
 ## Get code
 
 For maven:
@@ -26,9 +57,31 @@ For maven:
 	<dependency>
 	  <groupId>io.github.assimbly</groupId>
 	  <artifactId>docconverter</artifactId>
-	  <version>1.0.0</version>
+	  <version>1.1.0</version>
 	</dependency>	
 	
 For gradle:
 
-	compile 'io.github.assimbly:docconverter:1.0.0'	
+	compile 'io.github.assimbly:docconverter:1.1.0'	
+
+## Limits	
+
+DocConverter is created to make doc conversion of different data formats as easy as possible. 
+It is a generic converter which a simple string representation as input/output. It doesn't have any options. 
+
+If you need:
+
+	- Options
+	- Type check or validation
+	- Flexibility
+	- Performance
+
+Please check the following resources:
+	
+https://github.com/FasterXML	
+http://json.org/
+http://opencsv.sourceforge.net/
+http://x-stream.github.io/
+
+
+	
