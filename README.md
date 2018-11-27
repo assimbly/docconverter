@@ -71,10 +71,10 @@ It's a generic converter with a simple string representation as input/output.
 
 If you need:
 
-	- Options
-	- Type check or validation
-	- Flexibility
-	- Performance
+* Options
+* Type check or validation
+* Flexibility
+* Performance
 
 Please check the following resources:
 	
