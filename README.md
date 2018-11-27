@@ -78,10 +78,10 @@ If you need:
 
 Please check the following resources:
 	
-https://github.com/FasterXML	
-http://json.org/
-http://opencsv.sourceforge.net/
-http://x-stream.github.io/
+* https://github.com/FasterXML	
+* http://json.org/
+* http://opencsv.sourceforge.net/
+* http://x-stream.github.io/
 
 
 	
