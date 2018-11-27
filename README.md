@@ -1,8 +1,8 @@
 # DocConverter
 
-DocConverter is a Java library to convert between XML, JSON, CSV and YAML documents. It's a utility class that can be called in static way.
+DocConverter is a Java library to convert between XML, JSON, CSV and YAML documents. It's a utility class that can be called in a static way.
 
-It takes a string as input in XML, JSON or YAML format and returns a string into another format:
+It takes a string as input in one data format and returns a string into another data format:
 
 	String json = DocConverter.convertXmlToJson(String xml) 
 	String yaml = DocConverter.convertXmltoYaml(String xml)
@@ -25,7 +25,7 @@ If you have don't have a string as input you can convert several objects first t
 	DocConverter.convertDocToString(Document doc)
 	DocConverter.convertFileToString(String path)
 	DocConverter.convertListToString(List<String> list) 
-	DocConverter.convertStreamToString(InputStream is)
+	DocConverter.convertStreamToString(InputStream inputsstream)
 	DocConverter.convertUriToString(URI uri)	
 	
 	For example changing a file from XML to JSON:
@@ -36,7 +36,7 @@ If you have don't have a string as input you can convert several objects first t
 		
 ## CSV
 
-Conversion to csv expects a flat formats in following format:
+Conversion to csv expects input in the following flat format:
 
 	<rows>
 		<row>
@@ -67,7 +67,7 @@ For gradle:
 ## Limits	
 
 DocConverter is created to make doc conversion of different data formats as easy as possible. 
-It is a generic converter which a simple string representation as input/output. It doesn't have any options. 
+It's a generic converter with a simple string representation as input/output. 
 
 If you need:
 
