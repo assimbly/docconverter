@@ -83,6 +83,7 @@ Please check the following resources:
 * http://opencsv.sourceforge.net/
 * http://x-stream.github.io/
 * http://daffodil.incubator.apache.org/
+* https://github.com/stleary/JSON-java
 
 
 	
