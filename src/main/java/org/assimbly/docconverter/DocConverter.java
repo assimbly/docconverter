@@ -42,8 +42,9 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
-import com.opencsv.CSVReader;
 import com.thoughtworks.xstream.XStream;
+import com.univocity.parsers.csv.CsvParser;
+import com.univocity.parsers.csv.CsvParserSettings;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 public final class DocConverter {
@@ -318,35 +319,25 @@ public final class DocConverter {
     * @return xml as string 
 	* @throws IOException
 	*/
-	@SuppressWarnings({"unchecked","resource","rawtypes"})
 	public static String convertCsvToXml(String csv) throws IOException {
 
-		Reader reader = convertStringToReader(csv);
-		CSVReader csvReader = new CSVReader(reader);
-        
-        String[] line = null;
+		CsvParserSettings settings = new CsvParserSettings();
+		settings.detectFormatAutomatically();
+		settings.setEmptyValue("");
+		settings.setNullValue("");
+		CsvParser parser = new CsvParser(settings);
+		
+		InputStream input = convertStringToStream(csv);
+		
+		List<String[]> rows = parser.parseAll(input);
 
-        String[] header = csvReader.readNext();
-
-		List out = new ArrayList();
-
-        while((line = csvReader.readNext())!=null){
-            List<String[]> item = new ArrayList<String[]>();
-                for (int i = 0; i < header.length; i++) {
-                String[] keyVal = new String[2];
-                String string = header[i];
-                String val = line[i];
-                keyVal[0] = string;
-                keyVal[1] = val;
-                item.add(keyVal);
-            }
-            out.add(item);
-        }
-
-        XStream xstream = new XStream();
-
-        xml = xstream.toXML(out);
-        	    
+		XStream xstream = new XStream();
+		xstream.alias("rows", List.class);
+		xstream.alias("row", String[].class);
+		xstream.alias("item", String.class);
+	
+		xml = xstream.toXML(rows);
+		
 		return xml;
 	}
 
