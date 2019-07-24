@@ -81,6 +81,7 @@ Please check the following resources:
 * https://github.com/FasterXML	
 * http://json.org/
 * http://opencsv.sourceforge.net/
+* https://www.univocity.com/pages/univocity_parsers_tutorial.html
 * http://x-stream.github.io/
 * http://daffodil.incubator.apache.org/
 * https://github.com/stleary/JSON-java
