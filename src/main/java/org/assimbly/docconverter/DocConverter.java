@@ -52,9 +52,9 @@ public final class DocConverter {
 	private static String xml;
 	private static String yaml;
 	private static String json;
+	private static String csv;
 
 	public static int PRETTY_PRINT_INDENT_FACTOR = 4;
-	private static String csv;
 
 	
 	// String conversions
@@ -72,9 +72,9 @@ public final class DocConverter {
 	/**
 	* @param string String
     * @return InputStream
-    * @throws UnsupportedEncodingException
+    * @throws Exception (generic exception)
 	*/	
-	public static InputStream convertStringToStream(String string) throws UnsupportedEncodingException {
+	public static InputStream convertStringToStream(String string) throws Exception {
 		return new ByteArrayInputStream(string.getBytes("UTF-8"));
 	}
 
@@ -105,6 +105,7 @@ public final class DocConverter {
 	* 
 	* @param string String
     * @return Document (org.w3c.dom.Document XML document)
+    * @throws Exception (generic exception)
 	*/
 	public static Document convertStringToDoc(String string) throws Exception {
 
@@ -115,8 +116,29 @@ public final class DocConverter {
 	}
 
 	/**
+	* @param url (java.net.URL)
+    * @return String
+    * @throws Exception (generic exception)
+	*/
+	public static String convertURLToString(URL url) throws Exception {
+
+		InputStream stream = url.openStream();
+
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		DocumentBuilder builder = factory.newDocumentBuilder();
+
+		Document doc = builder.parse(stream);
+		
+		String docAsString = convertDocToString(doc); 
+		
+		return docAsString;
+	}
+
+	
+	/**
 	* @param uri (java.net.URI)
     * @return String
+    * @throws Exception (generic exception)
 	*/
 	public static String convertUriToString(URI uri) throws Exception {
 
@@ -136,6 +158,7 @@ public final class DocConverter {
 	/**
 	* @param uri (java.net.URI)
     * @return Document (org.w3c.dom.Document XML document) 
+    * @throws Exception (generic exception)
 	*/	
 	public static Document convertUriToDoc(URI uri) throws Exception {
 
@@ -151,19 +174,54 @@ public final class DocConverter {
 	/**
 	* @param path as string (uses UTF-8 for encoding)
     * @return String
+    * @throws Exception (generic exception)
 	*/
-	   public static String convertFileToString(String path) throws IOException {
-		  byte[] encoded = Files.readAllBytes(Paths.get(path));
-		  String fileAsString = new String(encoded, StandardCharsets.UTF_8);
-		  return fileAsString;
+   public static String convertFileToString(String path) throws Exception {
+	  byte[] encoded = Files.readAllBytes(Paths.get(path));
+	  String fileAsString = new String(encoded, StandardCharsets.UTF_8);
+	  return fileAsString;
 	}
 
+
+	/**
+	* @param file
+	* @return URL
+    * @throws Exception (generic exception)
+	*/
+	  public static URI convertFileToURI(File file) throws Exception {
+	      URI fileAsURI = file.toURI();   
+		  return fileAsURI;
+	  }
+
+   
+	/**
+	* @param file
+    * @return URL
+    * @throws Exception (generic exception)
+	*/
+   public static URL convertFileToURL(File file) throws Exception {
+      URL fileAsURL = file.toURI().toURL();   
+	  return fileAsURL;
+   }
+
+   
+	/**
+	* @param string
+	* @return Source as string
+    * @throws Exception (generic exception)
+	*/
+	public static Source convertStringToSource(String string) throws Exception {
+		Source stringAsSource = new StreamSource(new StringReader(string));
+		return stringAsSource;
+	}
+	
 	/**
 	* @param path as String
 	* @param encoding Charset
     * @return String
+    * @throws Exception (generic exception)
 	*/
-	public static String convertFileToString(String path, Charset encoding) throws IOException {
+	public static String convertFileToString(String path, Charset encoding) throws Exception {
 		if(encoding==null) {
 			encoding = StandardCharsets.UTF_8;
 		}
@@ -175,8 +233,9 @@ public final class DocConverter {
     /**
     * @param path as String
     * @param content as String
+    * @throws Exception (generic exception)
     */
-	public static void convertStringToFile(String path, String content) throws IOException {
+	public static void convertStringToFile(String path, String content) throws Exception {
 		Files.write( Paths.get(path), content.getBytes(), StandardOpenOption.CREATE);
 	}
 
@@ -209,9 +268,9 @@ public final class DocConverter {
 	/**
 	* @param reader (java.io.Reader)
     * @return String
-	* @throws IOException
+    * @throws Exception (generic exception)
 	*/		
-	public static String convertStringToReader(Reader reader) throws IOException  {
+	public static String convertStringToReader(Reader reader) throws Exception  {
 		String readerAsString = IOUtils.toString(reader);
 		return readerAsString;
 	}
@@ -233,9 +292,9 @@ public final class DocConverter {
 	/**
 	* @param xml as string
     * @return yaml as string 
-	* @throws IOException
+    * @throws Exception (generic exception)
 	*/
-	public static String convertXmlToYaml(String xml) throws IOException {
+	public static String convertXmlToYaml(String xml) throws Exception {
 
 		JSONObject xmlJSONObj = XML.toJSONObject(xml);
 		json = xmlJSONObj.toString();
@@ -249,7 +308,7 @@ public final class DocConverter {
 	/**
 	* @param xml as string
     * @return csv as string 
-	* @throws Exception
+    * @throws Exception (generic exception)
 	*/
 	public static String convertXmlToCsv(String xml) throws Exception {
 
@@ -277,9 +336,11 @@ public final class DocConverter {
 
 	/**
 	* @param json as string
-    * @return xml as string 
+    * @return xml as string
+    * @throws Exception (generic exception)
+ 
 	*/
-	public static String convertJsonToXml(String json) {
+	public static String convertJsonToXml(String json) throws Exception {
 
 		JSONObject jsonObj = new JSONObject(json);
 		String xml = XML.toString(jsonObj);
@@ -291,9 +352,9 @@ public final class DocConverter {
 	/**
 	* @param json as string
     * @return yaml as string 
-	* @throws IOException
+    * @throws Exception (generic exception)
 	*/
-	public static String convertJsonToYaml(String json) throws IOException {
+	public static String convertJsonToYaml(String json) throws Exception {
 
 		JsonNode jsonNodeTree = new ObjectMapper().readTree(json);
 		yaml = new YAMLMapper().writeValueAsString(jsonNodeTree);
@@ -304,7 +365,7 @@ public final class DocConverter {
 	/**
 	* @param json as string
     * @return csv as string 
-	* @throws Exception 
+    * @throws Exception (generic exception)
 	*/
 	public static String convertJsonToCsv(String json) throws Exception{
 
@@ -317,9 +378,9 @@ public final class DocConverter {
 	/**
 	* @param csv as string
     * @return xml as string 
-	* @throws IOException
+    * @throws Exception (generic exception)
 	*/
-	public static String convertCsvToXml(String csv) throws IOException {
+	public static String convertCsvToXml(String csv) throws Exception {
 
 		CsvParserSettings settings = new CsvParserSettings();
 		settings.detectFormatAutomatically();
@@ -344,9 +405,9 @@ public final class DocConverter {
 	/**
 	* @param csv as string
     * @return json as string 
-	* @throws IOException
+    * @throws Exception (generic exception)
 	*/
-	public static String convertCsvToJson(String csv) throws IOException{
+	public static String convertCsvToJson(String csv) throws Exception{
 
         xml = convertCsvToXml(csv);
         json = convertXmlToJson(xml);
@@ -357,9 +418,9 @@ public final class DocConverter {
 	/**
 	* @param csv as string
     * @return yaml as string 
-	* @throws IOException
+    * @throws Exception (generic exception)
 	*/
-	public static String convertCsvToYaml(String csv) throws IOException{
+	public static String convertCsvToYaml(String csv) throws Exception{
 
         xml = convertCsvToXml(csv);
         json = convertXmlToYaml(xml);
@@ -370,8 +431,9 @@ public final class DocConverter {
 	/**
 	* @param yaml as string
     * @return xml as string 
+    * @throws Exception (generic exception)
 	*/
-	public static String convertYamlToXml(String yaml) throws JsonParseException, JsonMappingException, IOException {
+	public static String convertYamlToXml(String yaml) throws Exception {
 
 		ObjectMapper yamlReader = new ObjectMapper(new YAMLFactory());
 		Object obj = yamlReader.readValue(yaml, Object.class);
@@ -388,8 +450,9 @@ public final class DocConverter {
 	/**
 	* @param yaml as string
     * @return json as string 
+    * @throws Exception (generic exception)
 	*/	
-	public static String convertYamlToJson(String yaml) throws JsonParseException, JsonMappingException, IOException {
+	public static String convertYamlToJson(String yaml) throws Exception {
 
 		ObjectMapper yamlReader = new ObjectMapper(new YAMLFactory());
 		Object obj = yamlReader.readValue(yaml, Object.class);
@@ -403,6 +466,7 @@ public final class DocConverter {
 	/**
 	* @param yaml as string
     * @return csv as string 
+    * @throws Exception (generic exception)
 	*/
 	public static String convertYamlToCsv(String yaml) throws Exception {
 
