@@ -59,12 +59,20 @@ For maven:
 	<dependency>
 	  <groupId>io.github.assimbly</groupId>
 	  <artifactId>docconverter</artifactId>
+<<<<<<< HEAD
 	  <version>1.3.0</version>
+=======
+	  <version>1.2.0</version>
+>>>>>>> branch 'master' of https://github.com/assimbly/docconverter.git
 	</dependency>	
 	
 For gradle:
 
+<<<<<<< HEAD
 	compile 'io.github.assimbly:docconverter:1.3.0'	
+=======
+	compile 'io.github.assimbly:docconverter:1.2.0'	
+>>>>>>> branch 'master' of https://github.com/assimbly/docconverter.git
 
 ## Limits	
 
@@ -83,7 +91,10 @@ Please check the following resources:
 * https://github.com/FasterXML	
 * http://json.org/
 * http://opencsv.sourceforge.net/
+* https://www.univocity.com/pages/univocity_parsers_tutorial.html
 * http://x-stream.github.io/
+* http://daffodil.incubator.apache.org/
+* https://github.com/stleary/JSON-java
 
 
 	
