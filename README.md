@@ -59,20 +59,12 @@ For maven:
 	<dependency>
 	  <groupId>io.github.assimbly</groupId>
 	  <artifactId>docconverter</artifactId>
-<<<<<<< HEAD
 	  <version>1.3.0</version>
-=======
-	  <version>1.2.0</version>
->>>>>>> branch 'master' of https://github.com/assimbly/docconverter.git
 	</dependency>	
 	
 For gradle:
 
-<<<<<<< HEAD
-	compile 'io.github.assimbly:docconverter:1.3.0'	
-=======
-	compile 'io.github.assimbly:docconverter:1.2.0'	
->>>>>>> branch 'master' of https://github.com/assimbly/docconverter.git
+             compile 'io.github.assimbly:docconverter:1.3.0'	
 
 ## Limits	
 
