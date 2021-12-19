@@ -54,25 +54,18 @@ Conversion to csv expects input in the following flat format:
 		
 ## Get code
 
+From version 1.4.0 DocConverter is build for JDK11
+
 For maven:
 
 	<dependency>
 	  <groupId>io.github.assimbly</groupId>
 	  <artifactId>docconverter</artifactId>
-<<<<<<< HEAD
-	  <version>1.3.0</version>
-=======
-	  <version>1.2.0</version>
->>>>>>> branch 'master' of https://github.com/assimbly/docconverter.git
+	  <version>1.4.0</version>
 	</dependency>	
 	
 For gradle:
-
-<<<<<<< HEAD
-	compile 'io.github.assimbly:docconverter:1.3.0'	
-=======
-	compile 'io.github.assimbly:docconverter:1.2.0'	
->>>>>>> branch 'master' of https://github.com/assimbly/docconverter.git
+	compile 'io.github.assimbly:docconverter:1.4.0'	
 
 ## Limits	
 

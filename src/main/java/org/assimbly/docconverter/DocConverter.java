@@ -184,7 +184,7 @@ public final class DocConverter {
 
 
 	/**
-	* @param file
+	* @param file File object
 	* @return URL
     * @throws Exception (generic exception)
 	*/
@@ -195,7 +195,7 @@ public final class DocConverter {
 
    
 	/**
-	* @param file
+	* @param file File object
     * @return URL
     * @throws Exception (generic exception)
 	*/
@@ -206,7 +206,7 @@ public final class DocConverter {
 
    
 	/**
-	* @param string
+	* @param string String object
 	* @return Source as string
     * @throws Exception (generic exception)
 	*/
@@ -240,7 +240,7 @@ public final class DocConverter {
 	}
 
 	/**
-	* @param list
+	* @param list List of strings
     * @return String
 	*/
 	public static String convertListToString(List<String> list)  {
@@ -249,7 +249,7 @@ public final class DocConverter {
 	}
 
 	/**
-	* @param commaSeparatedString
+	* @param commaSeparatedString List of strings separated by a comma
     * @return List
 	*/	
 	public static List<String> convertStringToList(String commaSeparatedString)  {
@@ -258,7 +258,7 @@ public final class DocConverter {
 	}	
 
 	/**
-	* @param string
+	* @param string String object
     * @return Reader
 	*/	public static Reader convertStringToReader(String string)  {
 		Reader reader = new StringReader(string);
