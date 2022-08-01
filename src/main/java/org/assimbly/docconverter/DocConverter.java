@@ -1,12 +1,6 @@
 package org.assimbly.docconverter;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -22,23 +16,15 @@ import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 import org.json.XML;
 
-import java.io.StringWriter;
-
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Result;
-import javax.xml.transform.Source;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
 import org.w3c.dom.Document;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
@@ -46,6 +32,8 @@ import com.thoughtworks.xstream.XStream;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
 public final class DocConverter {
 
@@ -113,6 +101,43 @@ public final class DocConverter {
 		DocumentBuilder builder = factory.newDocumentBuilder();
 
 		return builder.parse(new ByteArrayInputStream(string.getBytes()));
+	}
+
+
+	/**
+	 * String conversion
+	 *
+	 * @param node Node (org.w3c.dom.Node)
+	 * @return String
+	 * @throws TransformerException (Transformer exception)
+	 */
+	public String convertNodeToString(Node node) throws TransformerException {
+		//Convert node to string
+		StreamResult xmlOutput = new StreamResult(new StringWriter());
+		Transformer transformer = TransformerFactory.newInstance().newTransformer();
+		transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+		transformer.transform(new DOMSource(node), xmlOutput);
+		String nodeAsAString = xmlOutput.getWriter().toString();
+
+		return nodeAsAString;
+	}
+
+	/**
+	 * String conversion
+	 *
+	 * @param string String (xml node as string value. For example: &lt;node&gt;value&lt;/node&gt; )
+	 * @return node Node (org.w3c.dom.Node)
+	 * @throws TransformerException
+	 */
+	public Node convertStringToNode(String string) throws Exception {
+		Element node =  DocumentBuilderFactory
+				.newInstance()
+				.newDocumentBuilder()
+				.parse(new ByteArrayInputStream(string.getBytes()))
+				.getDocumentElement();
+
+		return node;
+
 	}
 
 	/**
