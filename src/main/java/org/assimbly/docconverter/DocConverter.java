@@ -8,25 +8,29 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.XML;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParserFactory;
 import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
+import org.w3c.dom.DOMConfiguration;
 import org.w3c.dom.Document;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.thoughtworks.xstream.XStream;
 import com.univocity.parsers.csv.CsvParser;
@@ -34,6 +38,10 @@ import com.univocity.parsers.csv.CsvParserSettings;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+import org.w3c.dom.ls.DOMImplementationLS;
+import org.w3c.dom.ls.LSSerializer;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 public final class DocConverter {
 
@@ -103,23 +111,22 @@ public final class DocConverter {
 		return builder.parse(new ByteArrayInputStream(string.getBytes()));
 	}
 
-
 	/**
 	 * String conversion
 	 *
 	 * @param node Node (org.w3c.dom.Node)
 	 * @return String
-	 * @throws TransformerException (Transformer exception)
 	 */
-	public String convertNodeToString(Node node) throws TransformerException {
-		//Convert node to string
-		StreamResult xmlOutput = new StreamResult(new StringWriter());
-		Transformer transformer = TransformerFactory.newInstance().newTransformer();
-		transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-		transformer.transform(new DOMSource(node), xmlOutput);
-		String nodeAsAString = xmlOutput.getWriter().toString();
+	public static String convertNodeToString(Node node) {
 
-		return nodeAsAString;
+		DOMImplementationLS lsImpl = (DOMImplementationLS)node.getOwnerDocument().getImplementation().getFeature("LS", "3.0");
+		LSSerializer lsSerializer = lsImpl.createLSSerializer();
+
+		DOMConfiguration config = lsSerializer.getDomConfig();
+		config.setParameter("xml-declaration", Boolean.FALSE);
+
+		return lsSerializer.writeToString(node);
+
 	}
 
 	/**
@@ -127,9 +134,10 @@ public final class DocConverter {
 	 *
 	 * @param string String (xml node as string value. For example: &lt;node&gt;value&lt;/node&gt; )
 	 * @return node Node (org.w3c.dom.Node)
-	 * @throws TransformerException
+	 * @throws Exception (generic exception)
 	 */
 	public Node convertStringToNode(String string) throws Exception {
+
 		Element node =  DocumentBuilderFactory
 				.newInstance()
 				.newDocumentBuilder()
@@ -304,12 +312,20 @@ public final class DocConverter {
 	
 	/**
 	* @param xml as string
-    * @return json as string 
+    * @return json as string
+	* @throws Exception (generic exception)
 	*/
-	public static String convertXmlToJson(String xml) {
+	public static String convertXmlToJson(String xml) throws Exception {
 
-		JSONObject xmlJSONObj = XML.toJSONObject(xml);
-		String json = xmlJSONObj.toString(PRETTY_PRINT_INDENT_FACTOR);
+		XmlMapper xmlMapper = new XmlMapper();
+
+		xml = "<ObjectNode>" + xml + "</ObjectNode>";
+
+		JsonNode node = xmlMapper.readTree(xml.getBytes());
+
+		ObjectMapper objectMapper = new ObjectMapper();
+
+		String json = objectMapper.writeValueAsString(node);
 
 		return json;
 	}
@@ -367,8 +383,30 @@ public final class DocConverter {
 	*/
 	public static String convertJsonToXml(String json) throws Exception {
 
-		JSONObject jsonObj = new JSONObject(json);
-		String xml = XML.toString(jsonObj);
+		String xml = "{}";
+		if(json.startsWith("[")){
+			JSONArray jsonArray = new JSONArray(json);
+
+			// Convert the JSONArray to a List of Maps
+			List<Object> list = jsonArray.toList();
+
+			// Convert the List of Maps to XML
+			XmlMapper xmlMapper = new XmlMapper();
+			xml = xmlMapper.writeValueAsString(list);
+		}else{
+			ObjectMapper objectMapper = new ObjectMapper();
+			JsonNode jsonNode = objectMapper.readTree(json);
+
+			XmlMapper xmlMapper = new XmlMapper();
+			xml = xmlMapper.writeValueAsString(jsonNode);
+
+			//if xml already has a root node then ObjectNode element can be stripped
+			String newXml = StringUtils.substringBetween(xml,"<ObjectNode>","</ObjectNode>");
+			if(isXML(newXml)){
+				xml = newXml;
+			}
+
+		}		
 
 		return xml;
 
@@ -460,14 +498,8 @@ public final class DocConverter {
 	*/
 	public static String convertYamlToXml(String yaml) throws Exception {
 
-		ObjectMapper yamlReader = new ObjectMapper(new YAMLFactory());
-		Object obj = yamlReader.readValue(yaml, Object.class);
-
-		ObjectMapper jsonWriter = new ObjectMapper();
-		json = jsonWriter.writeValueAsString(obj);
-
-		JSONObject jsonObj = new JSONObject(json);
-		xml = XML.toString(jsonObj);
+		json = convertYamlToJson(yaml);
+		xml = convertJsonToXml(json);
 
 		return xml;
 	}
@@ -500,5 +532,14 @@ public final class DocConverter {
 
 		return csv;
 	}
-	
+
+	private static boolean isXML(String xml) {
+		try {
+			SAXParserFactory.newInstance().newSAXParser().getXMLReader().parse(new InputSource(new StringReader(xml)));
+			return true;
+		} catch (ParserConfigurationException | SAXException | IOException ex) {
+			return false;
+		}
+	}
+
 }
