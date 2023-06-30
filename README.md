@@ -62,11 +62,11 @@ For maven:
 	<dependency>
 	  <groupId>io.github.assimbly</groupId>
 	  <artifactId>docconverter</artifactId>
-	  <version>1.8.0</version>
+	  <version>1.8.1</version>
 	</dependency>	
 	
 For gradle:
-	compile 'io.github.assimbly:docconverter:1.8.0'	
+	compile 'io.github.assimbly:docconverter:1.8.1'	
 
 ## Limits	
 

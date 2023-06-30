@@ -2,7 +2,7 @@
 @packages
 @argfile
 -classpath
-'C:/Users/Raymond/.m2/repository/commons-io/commons-io/2.12.0/commons-io-2.12.0.jar;C:/Users/Raymond/.m2/repository/org/apache/commons/commons-collections4/4.4/commons-collections4-4.4.jar;C:/Users/Raymond/.m2/repository/commons-jxpath/commons-jxpath/1.3/commons-jxpath-1.3.jar;C:/Users/Raymond/.m2/repository/com/opencsv/opencsv/5.7.1/opencsv-5.7.1.jar;C:/Users/Raymond/.m2/repository/org/apache/commons/commons-lang3/3.12.0/commons-lang3-3.12.0.jar;C:/Users/Raymond/.m2/repository/org/apache/commons/commons-text/1.10.0/commons-text-1.10.0.jar;C:/Users/Raymond/.m2/repository/commons-beanutils/commons-beanutils/1.9.4/commons-beanutils-1.9.4.jar;C:/Users/Raymond/.m2/repository/commons-logging/commons-logging/1.2/commons-logging-1.2.jar;C:/Users/Raymond/.m2/repository/commons-collections/commons-collections/3.2.2/commons-collections-3.2.2.jar;C:/Users/Raymond/.m2/repository/com/thoughtworks/xstream/xstream/1.4.20/xstream-1.4.20.jar;C:/Users/Raymond/.m2/repository/io/github/x-stream/mxparser/1.2.2/mxparser-1.2.2.jar;C:/Users/Raymond/.m2/repository/xmlpull/xmlpull/1.1.3.1/xmlpull-1.1.3.1.jar;C:/Users/Raymond/.m2/repository/org/simpleflatmapper/sfm-csv/8.2.3/sfm-csv-8.2.3.jar;C:/Users/Raymond/.m2/repository/org/simpleflatmapper/lightning-csv/8.2.3/lightning-csv-8.2.3.jar;C:/Users/Raymond/.m2/repository/org/simpleflatmapper/ow2-asm/6.2/ow2-asm-6.2.jar;C:/Users/Raymond/.m2/repository/org/simpleflatmapper/sfm-util/8.2.3/sfm-util-8.2.3.jar;C:/Users/Raymond/.m2/repository/org/simpleflatmapper/sfm-map/8.2.3/sfm-map-8.2.3.jar;C:/Users/Raymond/.m2/repository/org/simpleflatmapper/sfm-reflect/8.2.3/sfm-reflect-8.2.3.jar;C:/Users/Raymond/.m2/repository/org/simpleflatmapper/sfm-converter/8.2.3/sfm-converter-8.2.3.jar;C:/Users/Raymond/.m2/repository/org/simpleflatmapper/sfm-tuples/8.2.3/sfm-tuples-8.2.3.jar;C:/Users/Raymond/.m2/repository/com/univocity/univocity-parsers/2.9.1/univocity-parsers-2.9.1.jar;C:/Users/Raymond/.m2/repository/org/json/json/20230227/json-20230227.jar;C:/Users/Raymond/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.15.1/jackson-core-2.15.1.jar;C:/Users/Raymond/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.15.1/jackson-databind-2.15.1.jar;C:/Users/Raymond/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.15.1/jackson-annotations-2.15.1.jar;C:/Users/Raymond/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-csv/2.15.1/jackson-dataformat-csv-2.15.1.jar;C:/Users/Raymond/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-yaml/2.15.1/jackson-dataformat-yaml-2.15.1.jar;C:/Users/Raymond/.m2/repository/org/yaml/snakeyaml/2.0/snakeyaml-2.0.jar;C:/Users/Raymond/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-xml/2.15.1/jackson-dataformat-xml-2.15.1.jar;C:/Users/Raymond/.m2/repository/org/codehaus/woodstox/stax2-api/4.2.1/stax2-api-4.2.1.jar;C:/Users/Raymond/.m2/repository/com/fasterxml/woodstox/woodstox-core/6.5.1/woodstox-core-6.5.1.jar'
+'C:/Users/Raymond/.m2/repository/commons-io/commons-io/2.12.0/commons-io-2.12.0.jar;C:/Users/Raymond/.m2/repository/org/apache/commons/commons-collections4/4.4/commons-collections4-4.4.jar;C:/Users/Raymond/.m2/repository/commons-jxpath/commons-jxpath/1.3/commons-jxpath-1.3.jar;C:/Users/Raymond/.m2/repository/xerces/xercesImpl/2.12.2/xercesImpl-2.12.2.jar;C:/Users/Raymond/.m2/repository/xml-apis/xml-apis/1.4.01/xml-apis-1.4.01.jar;C:/Users/Raymond/.m2/repository/com/opencsv/opencsv/5.7.1/opencsv-5.7.1.jar;C:/Users/Raymond/.m2/repository/org/apache/commons/commons-lang3/3.12.0/commons-lang3-3.12.0.jar;C:/Users/Raymond/.m2/repository/org/apache/commons/commons-text/1.10.0/commons-text-1.10.0.jar;C:/Users/Raymond/.m2/repository/commons-beanutils/commons-beanutils/1.9.4/commons-beanutils-1.9.4.jar;C:/Users/Raymond/.m2/repository/commons-logging/commons-logging/1.2/commons-logging-1.2.jar;C:/Users/Raymond/.m2/repository/commons-collections/commons-collections/3.2.2/commons-collections-3.2.2.jar;C:/Users/Raymond/.m2/repository/com/thoughtworks/xstream/xstream/1.4.20/xstream-1.4.20.jar;C:/Users/Raymond/.m2/repository/io/github/x-stream/mxparser/1.2.2/mxparser-1.2.2.jar;C:/Users/Raymond/.m2/repository/xmlpull/xmlpull/1.1.3.1/xmlpull-1.1.3.1.jar;C:/Users/Raymond/.m2/repository/org/simpleflatmapper/sfm-csv/8.2.3/sfm-csv-8.2.3.jar;C:/Users/Raymond/.m2/repository/org/simpleflatmapper/lightning-csv/8.2.3/lightning-csv-8.2.3.jar;C:/Users/Raymond/.m2/repository/org/simpleflatmapper/ow2-asm/6.2/ow2-asm-6.2.jar;C:/Users/Raymond/.m2/repository/org/simpleflatmapper/sfm-util/8.2.3/sfm-util-8.2.3.jar;C:/Users/Raymond/.m2/repository/org/simpleflatmapper/sfm-map/8.2.3/sfm-map-8.2.3.jar;C:/Users/Raymond/.m2/repository/org/simpleflatmapper/sfm-reflect/8.2.3/sfm-reflect-8.2.3.jar;C:/Users/Raymond/.m2/repository/org/simpleflatmapper/sfm-converter/8.2.3/sfm-converter-8.2.3.jar;C:/Users/Raymond/.m2/repository/org/simpleflatmapper/sfm-tuples/8.2.3/sfm-tuples-8.2.3.jar;C:/Users/Raymond/.m2/repository/com/univocity/univocity-parsers/2.9.1/univocity-parsers-2.9.1.jar;C:/Users/Raymond/.m2/repository/org/json/json/20230227/json-20230227.jar;C:/Users/Raymond/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.15.2/jackson-core-2.15.2.jar;C:/Users/Raymond/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.15.2/jackson-databind-2.15.2.jar;C:/Users/Raymond/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.15.2/jackson-annotations-2.15.2.jar;C:/Users/Raymond/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-csv/2.15.2/jackson-dataformat-csv-2.15.2.jar;C:/Users/Raymond/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-yaml/2.15.2/jackson-dataformat-yaml-2.15.2.jar;C:/Users/Raymond/.m2/repository/org/yaml/snakeyaml/2.0/snakeyaml-2.0.jar;C:/Users/Raymond/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-xml/2.15.2/jackson-dataformat-xml-2.15.2.jar;C:/Users/Raymond/.m2/repository/org/codehaus/woodstox/stax2-api/4.2.1/stax2-api-4.2.1.jar;C:/Users/Raymond/.m2/repository/com/fasterxml/woodstox/woodstox-core/6.5.1/woodstox-core-6.5.1.jar'
 -encoding
 'UTF-8'
 -protected
@@ -20,18 +20,20 @@
 -docencoding
 'UTF-8'
 -doctitle
-'docconverter 1.8.0 API'
+'docconverter 1.8.1 API'
 -linkoffline
 'https://docs.oracle.com/en/java/javase/11/docs/api' 'D:/intellij/workspace/docconverter/target/javadoc-bundle-options'
 -use
 -version
 -windowtitle
-'docconverter 1.8.0 API'
+'docconverter 1.8.1 API'
 org.assimbly.docconverter
 'D:/intellij/workspace/docconverter/src/main/java/org/assimbly/docconverter/DocConverter.java'
 C:\Users\Raymond\.m2\repository\commons-io\commons-io\2.12.0\commons-io-2.12.0.jar = 1684477488755
 C:\Users\Raymond\.m2\repository\org\apache\commons\commons-collections4\4.4\commons-collections4-4.4.jar = 1662358616724
 C:\Users\Raymond\.m2\repository\commons-jxpath\commons-jxpath\1.3\commons-jxpath-1.3.jar = 1662358616824
+C:\Users\Raymond\.m2\repository\xerces\xercesImpl\2.12.2\xercesImpl-2.12.2.jar = 1663680718085
+C:\Users\Raymond\.m2\repository\xml-apis\xml-apis\1.4.01\xml-apis-1.4.01.jar = 1663680717428
 C:\Users\Raymond\.m2\repository\com\opencsv\opencsv\5.7.1\opencsv-5.7.1.jar = 1682062263895
 C:\Users\Raymond\.m2\repository\org\apache\commons\commons-lang3\3.12.0\commons-lang3-3.12.0.jar = 1662358436562
 C:\Users\Raymond\.m2\repository\org\apache\commons\commons-text\1.10.0\commons-text-1.10.0.jar = 1664801301990
@@ -51,34 +53,34 @@ C:\Users\Raymond\.m2\repository\org\simpleflatmapper\sfm-converter\8.2.3\sfm-con
 C:\Users\Raymond\.m2\repository\org\simpleflatmapper\sfm-tuples\8.2.3\sfm-tuples-8.2.3.jar = 1662358850358
 C:\Users\Raymond\.m2\repository\com\univocity\univocity-parsers\2.9.1\univocity-parsers-2.9.1.jar = 1662358495987
 C:\Users\Raymond\.m2\repository\org\json\json\20230227\json-20230227.jar = 1677828978403
-C:\Users\Raymond\.m2\repository\com\fasterxml\jackson\core\jackson-core\2.15.1\jackson-core-2.15.1.jar = 1684477488924
-C:\Users\Raymond\.m2\repository\com\fasterxml\jackson\core\jackson-databind\2.15.1\jackson-databind-2.15.1.jar = 1684477489022
-C:\Users\Raymond\.m2\repository\com\fasterxml\jackson\core\jackson-annotations\2.15.1\jackson-annotations-2.15.1.jar = 1684477488785
-C:\Users\Raymond\.m2\repository\com\fasterxml\jackson\dataformat\jackson-dataformat-csv\2.15.1\jackson-dataformat-csv-2.15.1.jar = 1685310241507
-C:\Users\Raymond\.m2\repository\com\fasterxml\jackson\dataformat\jackson-dataformat-yaml\2.15.1\jackson-dataformat-yaml-2.15.1.jar = 1685310241519
+C:\Users\Raymond\.m2\repository\com\fasterxml\jackson\core\jackson-core\2.15.2\jackson-core-2.15.2.jar = 1685708829229
+C:\Users\Raymond\.m2\repository\com\fasterxml\jackson\core\jackson-databind\2.15.2\jackson-databind-2.15.2.jar = 1685708829083
+C:\Users\Raymond\.m2\repository\com\fasterxml\jackson\core\jackson-annotations\2.15.2\jackson-annotations-2.15.2.jar = 1685708829091
+C:\Users\Raymond\.m2\repository\com\fasterxml\jackson\dataformat\jackson-dataformat-csv\2.15.2\jackson-dataformat-csv-2.15.2.jar = 1686231594805
+C:\Users\Raymond\.m2\repository\com\fasterxml\jackson\dataformat\jackson-dataformat-yaml\2.15.2\jackson-dataformat-yaml-2.15.2.jar = 1686231594870
 C:\Users\Raymond\.m2\repository\org\yaml\snakeyaml\2.0\snakeyaml-2.0.jar = 1681287111887
-C:\Users\Raymond\.m2\repository\com\fasterxml\jackson\dataformat\jackson-dataformat-xml\2.15.1\jackson-dataformat-xml-2.15.1.jar = 1684477488795
+C:\Users\Raymond\.m2\repository\com\fasterxml\jackson\dataformat\jackson-dataformat-xml\2.15.2\jackson-dataformat-xml-2.15.2.jar = 1685708829156
 C:\Users\Raymond\.m2\repository\org\codehaus\woodstox\stax2-api\4.2.1\stax2-api-4.2.1.jar = 1662358619950
 C:\Users\Raymond\.m2\repository\com\fasterxml\woodstox\woodstox-core\6.5.1\woodstox-core-6.5.1.jar = 1682669840219
 D:\intellij\workspace\docconverter\src\main\java = 1682060815948
-D:\intellij\workspace\docconverter\target\generated-sources\annotations = 1685316357205
-D:\intellij\workspace\docconverter\target\apidocs\allclasses-index.html = 1685316366933
-D:\intellij\workspace\docconverter\target\apidocs\allclasses.html = 1685316366950
-D:\intellij\workspace\docconverter\target\apidocs\allpackages-index.html = 1685316366935
-D:\intellij\workspace\docconverter\target\apidocs\constant-values.html = 1685316366850
-D:\intellij\workspace\docconverter\target\apidocs\deprecated-list.html = 1685316366947
-D:\intellij\workspace\docconverter\target\apidocs\element-list = 1685316366810
-D:\intellij\workspace\docconverter\target\apidocs\help-doc.html = 1685316366960
-D:\intellij\workspace\docconverter\target\apidocs\index-all.html = 1685316366921
-D:\intellij\workspace\docconverter\target\apidocs\index.html = 1685316366952
-D:\intellij\workspace\docconverter\target\apidocs\jquery-ui.overrides.css = 1685316367002
-D:\intellij\workspace\docconverter\target\apidocs\member-search-index.js = 1685316366919
-D:\intellij\workspace\docconverter\target\apidocs\member-search-index.zip = 1685316366919
-D:\intellij\workspace\docconverter\target\apidocs\overview-tree.html = 1685316366896
-D:\intellij\workspace\docconverter\target\apidocs\package-search-index.js = 1685316366910
-D:\intellij\workspace\docconverter\target\apidocs\package-search-index.zip = 1685316366917
-D:\intellij\workspace\docconverter\target\apidocs\script.js = 1685316366969
-D:\intellij\workspace\docconverter\target\apidocs\search.js = 1685316366970
-D:\intellij\workspace\docconverter\target\apidocs\stylesheet.css = 1685316366967
-D:\intellij\workspace\docconverter\target\apidocs\type-search-index.js = 1685316366917
-D:\intellij\workspace\docconverter\target\apidocs\type-search-index.zip = 1685316366918
+D:\intellij\workspace\docconverter\target\generated-sources\annotations = 1686233874606
+D:\intellij\workspace\docconverter\target\apidocs\allclasses-index.html = 1686233880606
+D:\intellij\workspace\docconverter\target\apidocs\allclasses.html = 1686233880625
+D:\intellij\workspace\docconverter\target\apidocs\allpackages-index.html = 1686233880609
+D:\intellij\workspace\docconverter\target\apidocs\constant-values.html = 1686233880524
+D:\intellij\workspace\docconverter\target\apidocs\deprecated-list.html = 1686233880619
+D:\intellij\workspace\docconverter\target\apidocs\element-list = 1686233880495
+D:\intellij\workspace\docconverter\target\apidocs\help-doc.html = 1686233880632
+D:\intellij\workspace\docconverter\target\apidocs\index-all.html = 1686233880592
+D:\intellij\workspace\docconverter\target\apidocs\index.html = 1686233880628
+D:\intellij\workspace\docconverter\target\apidocs\jquery-ui.overrides.css = 1686233880648
+D:\intellij\workspace\docconverter\target\apidocs\member-search-index.js = 1686233880590
+D:\intellij\workspace\docconverter\target\apidocs\member-search-index.zip = 1686233880591
+D:\intellij\workspace\docconverter\target\apidocs\overview-tree.html = 1686233880560
+D:\intellij\workspace\docconverter\target\apidocs\package-search-index.js = 1686233880581
+D:\intellij\workspace\docconverter\target\apidocs\package-search-index.zip = 1686233880588
+D:\intellij\workspace\docconverter\target\apidocs\script.js = 1686233880635
+D:\intellij\workspace\docconverter\target\apidocs\search.js = 1686233880636
+D:\intellij\workspace\docconverter\target\apidocs\stylesheet.css = 1686233880634
+D:\intellij\workspace\docconverter\target\apidocs\type-search-index.js = 1686233880589
+D:\intellij\workspace\docconverter\target\apidocs\type-search-index.zip = 1686233880590
