@@ -31,7 +31,7 @@ If you have don't have a string as input you can convert several objects first t
 	DocConverter.convertUriToString(URI uri)	
 	 
 	
-	For example changing a file from XML to JSON:
+For example changing a file from XML to JSON:
 		
 	String xml = DocConverter.convertFileToString("C:/example.xml");
 	String json = DocConverter.convertXmlToJson(xml);
@@ -55,18 +55,18 @@ Conversion to csv expects input in the following flat format:
 		
 ## Get code
 
-From version 1.4.0 DocConverter is build for JDK11
+From version 1.4.0 DocConverter is build for JDK11 and later.
 
 For maven:
 
 	<dependency>
 	  <groupId>io.github.assimbly</groupId>
 	  <artifactId>docconverter</artifactId>
-	  <version>1.8.1</version>
+	  <version>1.12.1</version>
 	</dependency>	
 	
 For gradle:
-	compile 'io.github.assimbly:docconverter:1.8.1'	
+	compile 'io.github.assimbly:docconverter:1.12.1'	
 
 ## Limits	
 

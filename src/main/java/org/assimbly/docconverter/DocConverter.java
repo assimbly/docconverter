@@ -10,6 +10,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
 
+import com.fasterxml.jackson.dataformat.xml.JacksonXmlModule;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.xml.serialize.XMLSerializer;
@@ -59,8 +60,10 @@ public final class DocConverter {
     * @return String
 	*/	
 	public static String convertStreamToString(InputStream inputstream) {
+
 		java.util.Scanner scanner = new java.util.Scanner(inputstream).useDelimiter("\\A");
 		return scanner.hasNext() ? scanner.next() : "";
+
 	}
 
 	/**
@@ -71,7 +74,6 @@ public final class DocConverter {
 	public static InputStream convertStringToStream(String string) throws Exception {
 		return new ByteArrayInputStream(string.getBytes(StandardCharsets.UTF_8));
 	}
-
 	
 	/**
 	* @param doc (org.w3c.dom.Document XML document)
@@ -85,6 +87,7 @@ public final class DocConverter {
 		XMLSerializer serial = new XMLSerializer(stringOut, format);
 		serial.serialize(doc);
 		return stringOut.toString();
+
 	}
 
 	/**
@@ -100,6 +103,7 @@ public final class DocConverter {
 		DocumentBuilder builder = factory.newDocumentBuilder();
 
 		return builder.parse(new ByteArrayInputStream(string.getBytes(StandardCharsets.UTF_8)));
+
 	}
 
 	/**
@@ -157,9 +161,9 @@ public final class DocConverter {
 		String docAsString = convertDocToString(doc);
 
 		return docAsString;
+
 	}
 
-	
 	/**
 	* @param uri (java.net.URI)
     * @return String
@@ -179,7 +183,130 @@ public final class DocConverter {
 		String docAsString = convertDocToString(doc); 
 		
 		return docAsString;
+
 	}
+
+	/**
+	 * @param path as string (uses UTF-8 for encoding)
+	 * @return String
+	 * @throws Exception (generic exception)
+	 */
+	public static String convertFileToString(String path) throws Exception {
+
+		byte[] encoded = Files.readAllBytes(Paths.get(path));
+		String fileAsString = new String(encoded, StandardCharsets.UTF_8);
+		return fileAsString;
+
+	}
+
+	/**
+	 * @param string String object
+	 * @return Source as string
+	 * @throws Exception (generic exception)
+	 */
+	public static Source convertStringToSource(String string) throws Exception {
+
+		Source stringAsSource = new StreamSource(new StringReader(string));
+		return stringAsSource;
+
+	}
+
+	/**
+	 * @param path as String
+	 * @param encoding Charset
+	 * @return String
+	 * @throws Exception (generic exception)
+	 */
+	public static String convertFileToString(String path, Charset encoding) throws Exception {
+
+		if(encoding==null) {
+			encoding = StandardCharsets.UTF_8;
+		}
+		byte[] encoded = Files.readAllBytes(Paths.get(path));
+
+		return new String(encoded, encoding);
+
+	}
+
+	/**
+	 * @param path as String
+	 * @param content as String
+	 * @throws Exception (generic exception)
+	 */
+	public static void convertStringToFile(String path, String content) throws Exception {
+
+		Files.write( Paths.get(path), content.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE);
+
+	}
+
+	/**
+	 * @param list List of strings
+	 * @return String
+	 */
+	public static String convertListToString(List<String> list)  {
+
+		String listAsString = String.join(",", list);
+		return listAsString;
+
+	}
+
+	/**
+	 * @param commaSeparatedString List of strings separated by a comma
+	 * @return List
+	 */
+	public static List<String> convertStringToList(String commaSeparatedString)  {
+
+		List<String> stringAsList = new ArrayList<String>(Arrays.asList(commaSeparatedString.split(",")));
+		return stringAsList;
+
+	}
+
+	/**
+	 * @param string String object
+	 * @return Reader
+	 */	public static Reader convertStringToReader(String string)  {
+
+		Reader reader = new StringReader(string);
+		return reader;
+
+	}
+
+	/**
+	 * @param reader (java.io.Reader)
+	 * @return String
+	 * @throws Exception (generic exception)
+	 */
+	public static String convertReaderToString(Reader reader) throws Exception  {
+
+		String readerAsString = IOUtils.toString(reader);
+		return readerAsString;
+
+	}
+
+	/**
+	 * @param object
+	 * @return String
+	 * @throws Exception (generic exception)
+	 */
+	public static String convertObjectToString(Object object) throws Exception {
+		String objectAsString = String.valueOf(object);
+		return objectAsString;
+	}
+
+
+	/**
+	 * @param object
+	 * @return String
+	 * @throws Exception (generic exception)
+	 */
+	public static String convertObjectToJSONString(Object object) throws Exception {
+
+		String objectAsJSONString = new ObjectMapper().writeValueAsString(object);
+		return objectAsJSONString;
+
+	}
+
+	//Other object conversions
 
 	/**
 	* @param uri (java.net.URI)
@@ -198,19 +325,8 @@ public final class DocConverter {
 		stream.close();
 
 		return doc;
-	}
 
-	/**
-	* @param path as string (uses UTF-8 for encoding)
-    * @return String
-    * @throws Exception (generic exception)
-	*/
-   public static String convertFileToString(String path) throws Exception {
-	  byte[] encoded = Files.readAllBytes(Paths.get(path));
-	  String fileAsString = new String(encoded, StandardCharsets.UTF_8);
-	  return fileAsString;
 	}
-
 
 	/**
 	* @param file File object
@@ -218,91 +334,23 @@ public final class DocConverter {
     * @throws Exception (generic exception)
 	*/
 	  public static URI convertFileToURI(File file) throws Exception {
-	      URI fileAsURI = file.toURI();   
+
+	      URI fileAsURI = file.toURI();
 		  return fileAsURI;
+
 	  }
 
-   
 	/**
 	* @param file File object
     * @return URL
     * @throws Exception (generic exception)
 	*/
    public static URL convertFileToURL(File file) throws Exception {
-      URL fileAsURL = file.toURI().toURL();   
+
+      URL fileAsURL = file.toURI().toURL();
 	  return fileAsURL;
+
    }
-
-   
-	/**
-	* @param string String object
-	* @return Source as string
-    * @throws Exception (generic exception)
-	*/
-	public static Source convertStringToSource(String string) throws Exception {
-		Source stringAsSource = new StreamSource(new StringReader(string));
-		return stringAsSource;
-	}
-	
-	/**
-	* @param path as String
-	* @param encoding Charset
-    * @return String
-    * @throws Exception (generic exception)
-	*/
-	public static String convertFileToString(String path, Charset encoding) throws Exception {
-		if(encoding==null) {
-			encoding = StandardCharsets.UTF_8;
-		}
-		  byte[] encoded = Files.readAllBytes(Paths.get(path));
-
-		  return new String(encoded, encoding);
-	}
-
-    /**
-    * @param path as String
-    * @param content as String
-    * @throws Exception (generic exception)
-    */
-	public static void convertStringToFile(String path, String content) throws Exception {
-		Files.write( Paths.get(path), content.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE);
-	}
-
-	/**
-	* @param list List of strings
-    * @return String
-	*/
-	public static String convertListToString(List<String> list)  {
-		String listAsString = String.join(",", list);
-		return listAsString;
-	}
-
-	/**
-	* @param commaSeparatedString List of strings separated by a comma
-    * @return List
-	*/	
-	public static List<String> convertStringToList(String commaSeparatedString)  {
-		List<String> stringAsList = new ArrayList<String>(Arrays.asList(commaSeparatedString.split(",")));
-		return stringAsList;
-	}	
-
-	/**
-	* @param string String object
-    * @return Reader
-	*/	public static Reader convertStringToReader(String string)  {
-		Reader reader = new StringReader(string);
-		return reader;
-	}
-
-	/**
-	* @param reader (java.io.Reader)
-    * @return String
-    * @throws Exception (generic exception)
-	*/		
-	public static String convertReaderToString(Reader reader) throws Exception  {
-		String readerAsString = IOUtils.toString(reader);
-		return readerAsString;
-	}
 
 	//data format conversions
 	
@@ -313,7 +361,11 @@ public final class DocConverter {
 	*/
 	public static String convertXmlToJson(String xml) throws Exception {
 
-		XmlMapper xmlMapper = new XmlMapper();
+		JacksonXmlModule xmlModule = new JacksonXmlModule();
+		xmlModule.setDefaultUseWrapper(false);
+		xmlModule.setXMLTextElementName("value");
+
+		XmlMapper xmlMapper = new XmlMapper(xmlModule);
 
 		xml = "<ObjectNode>" + xml + "</ObjectNode>";
 
@@ -324,6 +376,7 @@ public final class DocConverter {
 		String json = objectMapper.writeValueAsString(node);
 
 		return json;
+
 	}
 
 	/**
@@ -340,6 +393,7 @@ public final class DocConverter {
 		yaml = new YAMLMapper().writeValueAsString(jsonNode);
 
 		return yaml;
+
 	}
 
 	/**
@@ -369,6 +423,7 @@ public final class DocConverter {
 		csv = writer.toString();;
 
 		return csv;
+
 	}
 
 	/**
@@ -419,6 +474,7 @@ public final class DocConverter {
 		yaml = new YAMLMapper().writeValueAsString(jsonNodeTree);
 
 		return yaml;
+
 	}
 
 	/**
@@ -432,6 +488,7 @@ public final class DocConverter {
 		csv = convertXmlToCsv(xml);
 
 		return csv;
+
 	}
 
 	/**
@@ -461,6 +518,7 @@ public final class DocConverter {
 		input.close();
 
 		return xml;
+
 	}
 
 	/**
@@ -474,6 +532,7 @@ public final class DocConverter {
         json = convertXmlToJson(xml);
         	    
 		return json;
+
 	}
 
 	/**
@@ -487,6 +546,7 @@ public final class DocConverter {
         json = convertXmlToYaml(xml);
         	    
 		return json;
+
 	}
 
 	/**
@@ -500,6 +560,7 @@ public final class DocConverter {
 		xml = convertJsonToXml(json);
 
 		return xml;
+
 	}
 
 	/**
@@ -516,7 +577,8 @@ public final class DocConverter {
 		json = jsonWriter.writeValueAsString(obj);
 
 		return json;
-	}	
+
+	}
 
 	/**
 	* @param yaml as string
@@ -532,12 +594,14 @@ public final class DocConverter {
 	}
 
 	private static boolean isXML(String xml) {
+
 		try {
 			SAXParserFactory.newInstance().newSAXParser().getXMLReader().parse(new InputSource(new StringReader(xml)));
 			return true;
 		} catch (ParserConfigurationException | SAXException | IOException ex) {
 			return false;
 		}
+
 	}
 
 }

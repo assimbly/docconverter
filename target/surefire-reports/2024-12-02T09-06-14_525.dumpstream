@@ -1,0 +1,5 @@
+# Created at 2024-12-02T09:06:14.651
+Boot Manifest-JAR contains absolute paths in classpath 'D:\intellij\workspace\docconverter\target\test-classes'
+Hint: <argLine>-Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
+'other' has different root
+
