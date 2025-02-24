@@ -367,6 +367,7 @@ public final class DocConverter {
 
 		XmlMapper xmlMapper = new XmlMapper(xmlModule);
 
+		xml = removeXmlDeclaration(xml);
 		xml = "<ObjectNode>" + xml + "</ObjectNode>";
 
 		JsonNode node = xmlMapper.readTree(xml.getBytes(StandardCharsets.UTF_8));
@@ -602,6 +603,10 @@ public final class DocConverter {
 			return false;
 		}
 
+	}
+
+	private static String removeXmlDeclaration(String xml) {
+		return xml.replaceFirst("^<\\?xml.*?\\?>", "").trim();
 	}
 
 }

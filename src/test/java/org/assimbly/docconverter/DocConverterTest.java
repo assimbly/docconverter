@@ -14,7 +14,7 @@ public class DocConverterTest {
 
 		String expected = "{\"headers\":{\"Content-Type\":{\"type\":\"header\",\"language\":\"constant\",\"value\":\"text/xml\"}}}";
 
-		String input = "<headers><Content-Type type=\"header\" language=\"constant\">text/xml</Content-Type></headers>";
+		String input = "<?xml version=\"1.0\" encoding=\"utf-8\"?><headers><Content-Type type=\"header\" language=\"constant\">text/xml</Content-Type></headers>";
 
 		String actual = DocConverter.convertXmlToJson(input);
 
