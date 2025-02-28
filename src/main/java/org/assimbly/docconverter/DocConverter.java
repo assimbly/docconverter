@@ -13,8 +13,6 @@ import java.util.*;
 import com.fasterxml.jackson.dataformat.xml.JacksonXmlModule;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.xml.serialize.XMLSerializer;
-import org.apache.xml.serialize.OutputFormat;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -26,6 +24,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
 import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
 import org.w3c.dom.DOMConfiguration;
@@ -39,7 +38,6 @@ import com.thoughtworks.xstream.XStream;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.ls.DOMImplementationLS;
 import org.w3c.dom.ls.LSSerializer;
@@ -53,17 +51,14 @@ public final class DocConverter {
 	private static String json;
 	private static String csv;
 	
-	// String conversions
-
 	/**
-	* @param inputstream InputStream 
+	* @param inputStream InputStream
     * @return String
 	*/	
-	public static String convertStreamToString(InputStream inputstream) {
-
-		java.util.Scanner scanner = new java.util.Scanner(inputstream).useDelimiter("\\A");
-		return scanner.hasNext() ? scanner.next() : "";
-
+	public static String convertStreamToString(InputStream inputStream) {
+		try (Scanner scanner = new Scanner(inputStream, StandardCharsets.UTF_8).useDelimiter("\\A")) {
+			return scanner.hasNext() ? scanner.next() : "";
+		}
 	}
 
 	/**
@@ -71,23 +66,21 @@ public final class DocConverter {
     * @return InputStream
     * @throws Exception (generic exception)
 	*/	
-	public static InputStream convertStringToStream(String string) throws Exception {
+	public static InputStream convertStringToStream(String string) {
 		return new ByteArrayInputStream(string.getBytes(StandardCharsets.UTF_8));
 	}
 	
 	/**
-	* @param doc (org.w3c.dom.Document XML document)
+	* @param document (org.w3c.dom.Document XML document)
     * @return String
     * @throws Exception (generic exception)
 	*/
-	public static String convertDocToString(Document doc) throws Exception {
-
-		OutputFormat format = new OutputFormat(doc);
-		StringWriter stringOut = new StringWriter();
-		XMLSerializer serial = new XMLSerializer(stringOut, format);
-		serial.serialize(doc);
-		return stringOut.toString();
-
+	public static String convertDocToString(Document document) throws Exception {
+		TransformerFactory transformerFactory = TransformerFactory.newInstance();
+		Transformer transformer = transformerFactory.newTransformer();
+		StringWriter stringWriter = new StringWriter();
+		transformer.transform(new DOMSource(document), new StreamResult(stringWriter));
+		return stringWriter.toString();
 	}
 
 	/**
@@ -131,15 +124,13 @@ public final class DocConverter {
 	 * @return node Node (org.w3c.dom.Node)
 	 * @throws Exception (generic exception)
 	 */
-	public Node convertStringToNode(String string) throws Exception {
+	public static Node convertStringToNode(String string) throws Exception {
 
-		Element node = DocumentBuilderFactory
+		return DocumentBuilderFactory
 				.newInstance()
 				.newDocumentBuilder()
 				.parse(new ByteArrayInputStream(string.getBytes(StandardCharsets.UTF_8)))
 				.getDocumentElement();
-
-		return node;
 
 	}
 
@@ -158,9 +149,7 @@ public final class DocConverter {
 		Document doc = builder.parse(stream);
 		stream.close();
 
-		String docAsString = convertDocToString(doc);
-
-		return docAsString;
+		return convertDocToString(doc);
 
 	}
 
@@ -180,9 +169,7 @@ public final class DocConverter {
 		Document doc = builder.parse(stream);
 		stream.close();
 
-		String docAsString = convertDocToString(doc); 
-		
-		return docAsString;
+		return convertDocToString(doc);
 
 	}
 
@@ -192,11 +179,8 @@ public final class DocConverter {
 	 * @throws Exception (generic exception)
 	 */
 	public static String convertFileToString(String path) throws Exception {
-
 		byte[] encoded = Files.readAllBytes(Paths.get(path));
-		String fileAsString = new String(encoded, StandardCharsets.UTF_8);
-		return fileAsString;
-
+		return new String(encoded, StandardCharsets.UTF_8);
 	}
 
 	/**
@@ -205,10 +189,7 @@ public final class DocConverter {
 	 * @throws Exception (generic exception)
 	 */
 	public static Source convertStringToSource(String string) throws Exception {
-
-		Source stringAsSource = new StreamSource(new StringReader(string));
-		return stringAsSource;
-
+		return new StreamSource(new StringReader(string));
 	}
 
 	/**
@@ -244,10 +225,7 @@ public final class DocConverter {
 	 * @return String
 	 */
 	public static String convertListToString(List<String> list)  {
-
-		String listAsString = String.join(",", list);
-		return listAsString;
-
+		return String.join(",", list);
 	}
 
 	/**
@@ -255,20 +233,15 @@ public final class DocConverter {
 	 * @return List
 	 */
 	public static List<String> convertStringToList(String commaSeparatedString)  {
-
-		List<String> stringAsList = new ArrayList<String>(Arrays.asList(commaSeparatedString.split(",")));
-		return stringAsList;
-
+		return new ArrayList<>(Arrays.asList(commaSeparatedString.split(",")));
 	}
 
 	/**
 	 * @param string String object
 	 * @return Reader
-	 */	public static Reader convertStringToReader(String string)  {
-
-		Reader reader = new StringReader(string);
-		return reader;
-
+	 */
+	public static Reader convertStringToReader(String string)  {
+			return new StringReader(string);
 	}
 
 	/**
@@ -277,10 +250,7 @@ public final class DocConverter {
 	 * @throws Exception (generic exception)
 	 */
 	public static String convertReaderToString(Reader reader) throws Exception  {
-
-		String readerAsString = IOUtils.toString(reader);
-		return readerAsString;
-
+		return IOUtils.toString(reader);
 	}
 
 	/**
@@ -288,9 +258,8 @@ public final class DocConverter {
 	 * @return String
 	 * @throws Exception (generic exception)
 	 */
-	public static String convertObjectToString(Object object) throws Exception {
-		String objectAsString = String.valueOf(object);
-		return objectAsString;
+	public static String convertObjectToString(Object object) {
+		return String.valueOf(object);
 	}
 
 
@@ -300,10 +269,7 @@ public final class DocConverter {
 	 * @throws Exception (generic exception)
 	 */
 	public static String convertObjectToJSONString(Object object) throws Exception {
-
-		String objectAsJSONString = new ObjectMapper().writeValueAsString(object);
-		return objectAsJSONString;
-
+		return new ObjectMapper().writeValueAsString(object);
 	}
 
 	//Other object conversions
@@ -333,11 +299,8 @@ public final class DocConverter {
 	* @return URL
     * @throws Exception (generic exception)
 	*/
-	  public static URI convertFileToURI(File file) throws Exception {
-
-	      URI fileAsURI = file.toURI();
-		  return fileAsURI;
-
+	  public static URI convertFileToURI(File file) {
+	      return file.toURI();
 	  }
 
 	/**
@@ -346,10 +309,7 @@ public final class DocConverter {
     * @throws Exception (generic exception)
 	*/
    public static URL convertFileToURL(File file) throws Exception {
-
-      URL fileAsURL = file.toURI().toURL();
-	  return fileAsURL;
-
+      return file.toURI().toURL();
    }
 
 	//data format conversions
@@ -371,12 +331,9 @@ public final class DocConverter {
 		xml = "<ObjectNode>" + xml + "</ObjectNode>";
 
 		JsonNode node = xmlMapper.readTree(xml.getBytes(StandardCharsets.UTF_8));
-
 		ObjectMapper objectMapper = new ObjectMapper();
 
-		String json = objectMapper.writeValueAsString(node);
-
-		return json;
+		return objectMapper.writeValueAsString(node);
 
 	}
 
@@ -406,10 +363,8 @@ public final class DocConverter {
 
 		String[] xmlLines = xml.split(System.lineSeparator());
 		String stylesheet = "src/main/resources/xmltocsv.generic.xsl"; 
-		if(xmlLines.length > 2) {
-			if(xmlLines[0].equals("<rows>")||xmlLines[1].equals("<rows>")) {
-				stylesheet = "src/main/resources/xmltocsv.xsl"; 
-			}
+		if(xmlLines.length > 2 && xmlLines[0].equals("<rows>")||xmlLines[1].equals("<rows>")) {
+			stylesheet = "src/main/resources/xmltocsv.xsl";
 		}
 		
 		Document document = convertStringToDoc(xml);
@@ -421,7 +376,7 @@ public final class DocConverter {
         Result result = new javax.xml.transform.stream.StreamResult(writer);
         transformer.transform(source, result);
         
-		csv = writer.toString();;
+		csv = writer.toString();
 
 		return csv;
 
@@ -435,7 +390,7 @@ public final class DocConverter {
 	*/
 	public static String convertJsonToXml(String json) throws Exception {
 
-		String xml = "{}";
+		String xml;
 		if(json.startsWith("[")){
 			JSONArray jsonArray = new JSONArray(json);
 
