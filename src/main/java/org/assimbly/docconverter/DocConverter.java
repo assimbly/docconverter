@@ -44,6 +44,10 @@ import org.w3c.dom.ls.LSSerializer;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+/**
+ * Generic  utility class to convert between XML, JSON, YAML, CSV and String
+ * Default constructor.
+ */
 public final class DocConverter {
 
 	private static String xml;
@@ -52,6 +56,7 @@ public final class DocConverter {
 	private static String csv;
 	
 	/**
+	* Converts a Stream to a String
 	* @param inputStream InputStream
     * @return String
 	*/	
@@ -62,21 +67,22 @@ public final class DocConverter {
 	}
 
 	/**
+	* Converts a String to a Stream
 	* @param string String
     * @return InputStream
-    * @throws Exception (generic exception)
-	*/	
+	*/
 	public static InputStream convertStringToStream(String string) {
 		return new ByteArrayInputStream(string.getBytes(StandardCharsets.UTF_8));
 	}
 	
 	/**
-	* @param document (org.w3c.dom.Document XML document)
+	 * Converts an org.w3c.dom.Document (XML) to a String
+	 * @param document (org.w3c.dom.Document XML document)
     * @return String
     * @throws Exception (generic exception)
 	*/
 	public static String convertDocToString(Document document) throws Exception {
-		TransformerFactory transformerFactory = TransformerFactory.newInstance();
+		TransformerFactory transformerFactory = TransformerFactory.newDefaultInstance();
 		Transformer transformer = transformerFactory.newTransformer();
 		StringWriter stringWriter = new StringWriter();
 		transformer.transform(new DOMSource(document), new StreamResult(stringWriter));
@@ -84,7 +90,7 @@ public final class DocConverter {
 	}
 
 	/**
-	* String conversion
+	 * Converts a String toan org.w3c.dom.Document (XML)
 	* 
 	* @param string String
     * @return Document (org.w3c.dom.Document XML document)
@@ -93,6 +99,7 @@ public final class DocConverter {
 	public static Document convertStringToDoc(String string) throws Exception {
 
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
 		DocumentBuilder builder = factory.newDocumentBuilder();
 
 		return builder.parse(new ByteArrayInputStream(string.getBytes(StandardCharsets.UTF_8)));
@@ -100,7 +107,7 @@ public final class DocConverter {
 	}
 
 	/**
-	 * String conversion
+	 * Converts an org.w3c.dom.Node to a String
 	 *
 	 * @param node Node (org.w3c.dom.Node)
 	 * @return String
@@ -118,7 +125,7 @@ public final class DocConverter {
 	}
 
 	/**
-	 * String conversion
+	 * Converts a String to an org.w3c.dom.Node
 	 *
 	 * @param string String (xml node as string value. For example: &lt;node&gt;value&lt;/node&gt; )
 	 * @return node Node (org.w3c.dom.Node)
@@ -135,6 +142,7 @@ public final class DocConverter {
 	}
 
 	/**
+	 * Converts a URL to a String
 	* @param url (java.net.URL)
     * @return String
     * @throws Exception (generic exception)
@@ -144,6 +152,7 @@ public final class DocConverter {
 		InputStream stream = url.openStream();
 
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
 		DocumentBuilder builder = factory.newDocumentBuilder();
 
 		Document doc = builder.parse(stream);
@@ -154,6 +163,7 @@ public final class DocConverter {
 	}
 
 	/**
+	 * Converts a URI to a String
 	* @param uri (java.net.URI)
     * @return String
     * @throws Exception (generic exception)
@@ -164,6 +174,7 @@ public final class DocConverter {
 		InputStream stream = url.openStream();
 
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
 		DocumentBuilder builder = factory.newDocumentBuilder();
 
 		Document doc = builder.parse(stream);
@@ -174,6 +185,7 @@ public final class DocConverter {
 	}
 
 	/**
+	 * Converts a file to String
 	 * @param path as string (uses UTF-8 for encoding)
 	 * @return String
 	 * @throws Exception (generic exception)
@@ -184,6 +196,7 @@ public final class DocConverter {
 	}
 
 	/**
+	 * convert a String to a Source
 	 * @param string String object
 	 * @return Source as string
 	 * @throws Exception (generic exception)
@@ -193,6 +206,7 @@ public final class DocConverter {
 	}
 
 	/**
+	 * Converts a File to String
 	 * @param path as String
 	 * @param encoding Charset
 	 * @return String
@@ -210,6 +224,7 @@ public final class DocConverter {
 	}
 
 	/**
+	 * Converts a String to a File
 	 * @param path as String
 	 * @param content as String
 	 * @throws Exception (generic exception)
@@ -221,6 +236,7 @@ public final class DocConverter {
 	}
 
 	/**
+	 * Converts a List of String
 	 * @param list List of strings
 	 * @return String
 	 */
@@ -229,6 +245,7 @@ public final class DocConverter {
 	}
 
 	/**
+	 * Converts a comma separated String to a List
 	 * @param commaSeparatedString List of strings separated by a comma
 	 * @return List
 	 */
@@ -237,6 +254,7 @@ public final class DocConverter {
 	}
 
 	/**
+	 * Converts a String to a Reader
 	 * @param string String object
 	 * @return Reader
 	 */
@@ -245,6 +263,7 @@ public final class DocConverter {
 	}
 
 	/**
+	 * Converts a Reader to a String
 	 * @param reader (java.io.Reader)
 	 * @return String
 	 * @throws Exception (generic exception)
@@ -254,9 +273,9 @@ public final class DocConverter {
 	}
 
 	/**
-	 * @param object
+	 * Converts an Object to a String
+	 * @param object (Generic Object)
 	 * @return String
-	 * @throws Exception (generic exception)
 	 */
 	public static String convertObjectToString(Object object) {
 		return String.valueOf(object);
@@ -264,7 +283,8 @@ public final class DocConverter {
 
 
 	/**
-	 * @param object
+	 * Converts an Object to a JSON String
+	 * @param object (Generic Object)
 	 * @return String
 	 * @throws Exception (generic exception)
 	 */
@@ -275,7 +295,8 @@ public final class DocConverter {
 	//Other object conversions
 
 	/**
-	* @param uri (java.net.URI)
+	 * Converts a URI to an org.w3c.dom.Document (XML)
+	 * @param uri (java.net.URI)
     * @return Document (org.w3c.dom.Document XML document) 
     * @throws Exception (generic exception)
 	*/	
@@ -285,6 +306,7 @@ public final class DocConverter {
 		InputStream stream = url.openStream();
 
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
 		DocumentBuilder builder = factory.newDocumentBuilder();
 
 		Document doc = builder.parse(stream);
@@ -295,15 +317,16 @@ public final class DocConverter {
 	}
 
 	/**
+	 * Converts a File to a URI
 	* @param file File object
 	* @return URL
-    * @throws Exception (generic exception)
 	*/
 	  public static URI convertFileToURI(File file) {
 	      return file.toURI();
 	  }
 
 	/**
+	 * Converts a File to a URL
 	* @param file File object
     * @return URL
     * @throws Exception (generic exception)
@@ -315,6 +338,7 @@ public final class DocConverter {
 	//data format conversions
 	
 	/**
+	 * Converts XML to JSON (as String)
 	* @param xml as string
     * @return json as string
 	* @throws Exception (generic exception)
@@ -338,6 +362,7 @@ public final class DocConverter {
 	}
 
 	/**
+	 * Converts XML to YAML (as String)
 	* @param xml as string
     * @return yaml as string 
     * @throws Exception (generic exception)
@@ -355,6 +380,7 @@ public final class DocConverter {
 	}
 
 	/**
+	 * Converts XML to CSV (as String)
 	* @param xml as String
     * @return csv as String
     * @throws Exception (generic exception)
@@ -383,6 +409,7 @@ public final class DocConverter {
 	}
 
 	/**
+	 * Converts JSON to XML (as String)
 	* @param json as String
     * @return xml as String
     * @throws Exception (generic exception)
@@ -420,6 +447,7 @@ public final class DocConverter {
 	}
 
 	/**
+	 * Converts JSON to YAML (as String)
 	* @param json as string
     * @return yaml as string 
     * @throws Exception (generic exception)
@@ -434,6 +462,7 @@ public final class DocConverter {
 	}
 
 	/**
+	 * Converts JSON to CSV (as String)
 	* @param json as string
     * @return csv as string 
     * @throws Exception (generic exception)
@@ -448,6 +477,7 @@ public final class DocConverter {
 	}
 
 	/**
+	 * 	 * Converts CSV to XML (as String)
 	* @param csv as string
     * @return xml as string 
     * @throws Exception (generic exception)
@@ -478,6 +508,7 @@ public final class DocConverter {
 	}
 
 	/**
+	 * 	 * Converts CSV to JSON (as String)
 	* @param csv as string
     * @return json as string 
     * @throws Exception (generic exception)
@@ -492,6 +523,7 @@ public final class DocConverter {
 	}
 
 	/**
+	 * 	 * Converts CSV to YAML (as String)
 	* @param csv as string
     * @return yaml as string 
     * @throws Exception (generic exception)
@@ -506,6 +538,7 @@ public final class DocConverter {
 	}
 
 	/**
+	 * 	 * Converts YAML to XML (as String)
 	* @param yaml as string
     * @return xml as string 
     * @throws Exception (generic exception)
@@ -520,6 +553,7 @@ public final class DocConverter {
 	}
 
 	/**
+	 * 	 * Converts YAML to JSON (as String)
 	* @param yaml as string
     * @return json as string 
     * @throws Exception (generic exception)
@@ -537,6 +571,7 @@ public final class DocConverter {
 	}
 
 	/**
+	 * 	 * Converts YAML to CSV (as String)
 	* @param yaml as string
     * @return csv as string 
     * @throws Exception (generic exception)
