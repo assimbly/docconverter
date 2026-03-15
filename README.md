@@ -28,8 +28,7 @@ If you have don't have a string as input you can convert several objects first t
 	DocConverter.convertListToString(List<String> list) 
 	DocConverter.convertStreamToString(InputStream inputsstream)
 	DocConverter.convertUrlToString(URL url)
-	DocConverter.convertUriToString(URI uri)	
-	 
+	DocConverter.convertUriToString(URI uri)		 
 	
 For example changing a file from XML to JSON:
 		
@@ -62,12 +61,12 @@ For maven:
 	<dependency>
 	  <groupId>io.github.assimbly</groupId>
 	  <artifactId>docconverter</artifactId>
-	  <version>1.14.3</version>
+	  <version>1.17.0</version>
 	</dependency>	
 	
 For gradle:
 
-	compile 'io.github.assimbly:docconverter:1.14.3'	
+	compile 'io.github.assimbly:docconverter:1.17.0'	
 
 ## Limits	
 

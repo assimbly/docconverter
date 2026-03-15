@@ -11,8 +11,9 @@ import java.nio.file.StandardOpenOption;
 import java.util.*;
 
 import com.fasterxml.jackson.dataformat.xml.JacksonXmlModule;
+import com.opencsv.CSVWriter;
+import com.opencsv.ICSVWriter;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -34,7 +35,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
-import com.thoughtworks.xstream.XStream;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -42,24 +42,49 @@ import org.w3c.dom.Node;
 import org.w3c.dom.ls.DOMImplementationLS;
 import org.w3c.dom.ls.LSSerializer;
 import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
 /**
- * Generic  utility class to convert between XML, JSON, YAML, CSV and String
- * Default constructor.
+ * Generic utility class to convert between XML, JSON, YAML, CSV and String.
  */
 public final class DocConverter {
 
-	private static String xml;
-	private static String yaml;
-	private static String json;
-	private static String csv;
-	
+	// ─────────────────────────────────────────────
+	// Cached, thread-safe singletons
+	// ─────────────────────────────────────────────
+
+	private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
+
+	private static final XmlMapper XML_MAPPER = new XmlMapper(createXmlModule());
+
+	private static final YAMLMapper YAML_MAPPER = new YAMLMapper();
+
+	private static final XmlMapper XML_MAPPER_PLAIN = new XmlMapper();
+
+	private static final TransformerFactory TRANSFORMER_FACTORY = TransformerFactory.newDefaultInstance();
+
+	private static final ObjectMapper YAML_READER = new ObjectMapper(new YAMLFactory());
+
+	private static final int INITIAL_BUFFER_SIZE = 8192;
+
+	private static JacksonXmlModule createXmlModule() {
+		JacksonXmlModule m = new JacksonXmlModule();
+		m.setDefaultUseWrapper(false);
+		m.setXMLTextElementName("value");
+		return m;
+	}
+
+	// Private constructor – utility class
+	private DocConverter() {}
+
+	// ─────────────────────────────────────────────
+	// Stream / String
+	// ─────────────────────────────────────────────
+
 	/**
-	* Converts a Stream to a String
-	* @param inputStream InputStream
-    * @return String
-	*/	
+	 * Converts a Stream to a String
+	 * @param inputStream InputStream
+	 * @return String
+	 */
 	public static String convertStreamToString(InputStream inputStream) {
 		try (Scanner scanner = new Scanner(inputStream, StandardCharsets.UTF_8).useDelimiter("\\A")) {
 			return scanner.hasNext() ? scanner.next() : "";
@@ -67,536 +92,572 @@ public final class DocConverter {
 	}
 
 	/**
-	* Converts a String to a Stream
-	* @param string String
-    * @return InputStream
-	*/
+	 * Converts a String to a Stream
+	 * @param string String
+	 * @return InputStream
+	 */
 	public static InputStream convertStringToStream(String string) {
 		return new ByteArrayInputStream(string.getBytes(StandardCharsets.UTF_8));
 	}
-	
+
+	// ─────────────────────────────────────────────
+	// Document / String
+	// ─────────────────────────────────────────────
+
 	/**
 	 * Converts an org.w3c.dom.Document (XML) to a String
-	 * @param document (org.w3c.dom.Document XML document)
-    * @return String
-    * @throws Exception (generic exception)
-	*/
+	 * @param document org.w3c.dom.Document XML document
+	 * @return String
+	 * @throws Exception generic exception
+	 */
 	public static String convertDocToString(Document document) throws Exception {
-		TransformerFactory transformerFactory = TransformerFactory.newDefaultInstance();
-		Transformer transformer = transformerFactory.newTransformer();
+		Transformer transformer = TRANSFORMER_FACTORY.newTransformer();
 		StringWriter stringWriter = new StringWriter();
 		transformer.transform(new DOMSource(document), new StreamResult(stringWriter));
 		return stringWriter.toString();
 	}
 
 	/**
-	 * Converts a String toan org.w3c.dom.Document (XML)
-	* 
-	* @param string String
-    * @return Document (org.w3c.dom.Document XML document)
-    * @throws Exception (generic exception)
-	*/
-	public static Document convertStringToDoc(String string) throws Exception {
-
-		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-		factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+	 * Converts a String to an org.w3c.dom.Document (XML)
+	 * @param xmlString String
+	 * @return Document org.w3c.dom.Document XML document
+	 * @throws Exception generic exception
+	 */
+	public static Document convertStringToDoc(String xmlString) throws Exception {
+		DocumentBuilderFactory factory = createSecureDocumentBuilderFactory();
 		DocumentBuilder builder = factory.newDocumentBuilder();
-
-		return builder.parse(new ByteArrayInputStream(string.getBytes(StandardCharsets.UTF_8)));
-
+		return builder.parse(new InputSource(new StringReader(xmlString)));
 	}
+
+	// ─────────────────────────────────────────────
+	// Node / String
+	// ─────────────────────────────────────────────
 
 	/**
 	 * Converts an org.w3c.dom.Node to a String
-	 *
-	 * @param node Node (org.w3c.dom.Node)
+	 * @param node Node org.w3c.dom.Node
 	 * @return String
 	 */
 	public static String convertNodeToString(Node node) {
-
-		DOMImplementationLS lsImpl = (DOMImplementationLS)node.getOwnerDocument().getImplementation().getFeature("LS", "3.0");
+		DOMImplementationLS lsImpl = (DOMImplementationLS)
+				node.getOwnerDocument().getImplementation().getFeature("LS", "3.0");
 		LSSerializer lsSerializer = lsImpl.createLSSerializer();
-
 		DOMConfiguration config = lsSerializer.getDomConfig();
 		config.setParameter("xml-declaration", Boolean.FALSE);
-
 		return lsSerializer.writeToString(node);
-
 	}
 
 	/**
 	 * Converts a String to an org.w3c.dom.Node
-	 *
-	 * @param string String (xml node as string value. For example: &lt;node&gt;value&lt;/node&gt; )
-	 * @return node Node (org.w3c.dom.Node)
-	 * @throws Exception (generic exception)
+	 * @param string XML node as string, e.g. {@code <node>value</node>}
+	 * @return Node org.w3c.dom.Node
+	 * @throws Exception generic exception
 	 */
 	public static Node convertStringToNode(String string) throws Exception {
-
 		return DocumentBuilderFactory
-				.newInstance()
+				.newDefaultInstance()
 				.newDocumentBuilder()
 				.parse(new ByteArrayInputStream(string.getBytes(StandardCharsets.UTF_8)))
 				.getDocumentElement();
-
 	}
+
+	// ─────────────────────────────────────────────
+	// URL / URI / String
+	// ─────────────────────────────────────────────
 
 	/**
 	 * Converts a URL to a String
-	* @param url (java.net.URL)
-    * @return String
-    * @throws Exception (generic exception)
-	*/
+	 * @param url java.net.URL
+	 * @return String
+	 * @throws Exception generic exception
+	 */
 	public static String convertURLToString(URL url) throws Exception {
-
-		InputStream stream = url.openStream();
-
-		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-		factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-		DocumentBuilder builder = factory.newDocumentBuilder();
-
-		Document doc = builder.parse(stream);
-		stream.close();
-
-		return convertDocToString(doc);
-
+		try (InputStream stream = url.openStream()) {
+			DocumentBuilderFactory factory = createSecureDocumentBuilderFactory();
+			Document doc = factory.newDocumentBuilder().parse(stream);
+			return convertDocToString(doc);
+		}
 	}
 
 	/**
 	 * Converts a URI to a String
-	* @param uri (java.net.URI)
-    * @return String
-    * @throws Exception (generic exception)
-	*/
+	 * @param uri java.net.URI
+	 * @return String
+	 * @throws Exception generic exception
+	 */
 	public static String convertUriToString(URI uri) throws Exception {
-
-		URL url = uri.toURL(); // get URL from your uri object
-		InputStream stream = url.openStream();
-
-		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-		factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-		DocumentBuilder builder = factory.newDocumentBuilder();
-
-		Document doc = builder.parse(stream);
-		stream.close();
-
-		return convertDocToString(doc);
-
+		URL url = uri.toURL();
+		try (InputStream stream = url.openStream()) {
+			DocumentBuilderFactory factory = createSecureDocumentBuilderFactory();
+			Document doc = factory.newDocumentBuilder().parse(stream);
+			return convertDocToString(doc);
+		}
 	}
 
 	/**
-	 * Converts a file to String
-	 * @param path as string (uses UTF-8 for encoding)
+	 * Converts a URI to an org.w3c.dom.Document (XML)
+	 * @param uri java.net.URI
+	 * @return Document org.w3c.dom.Document XML document
+	 * @throws Exception generic exception
+	 */
+	public static Document convertUriToDoc(URI uri) throws Exception {
+		URL url = uri.toURL();
+		try (InputStream stream = url.openStream()) {
+			DocumentBuilderFactory factory = createSecureDocumentBuilderFactory();
+			return factory.newDocumentBuilder().parse(stream);
+		}
+	}
+
+	// ─────────────────────────────────────────────
+	// File / String
+	// ─────────────────────────────────────────────
+
+	/**
+	 * Converts a file to String (UTF-8)
+	 * @param path path as String
 	 * @return String
-	 * @throws Exception (generic exception)
+	 * @throws Exception generic exception
 	 */
 	public static String convertFileToString(String path) throws Exception {
-		byte[] encoded = Files.readAllBytes(Paths.get(path));
-		return new String(encoded, StandardCharsets.UTF_8);
+		return Files.readString(Paths.get(path));
 	}
 
 	/**
-	 * convert a String to a Source
-	 * @param string String object
-	 * @return Source as string
-	 * @throws Exception (generic exception)
-	 */
-	public static Source convertStringToSource(String string) throws Exception {
-		return new StreamSource(new StringReader(string));
-	}
-
-	/**
-	 * Converts a File to String
-	 * @param path as String
-	 * @param encoding Charset
+	 * Converts a File to String with explicit encoding
+	 * @param path path as String
+	 * @param encoding Charset (defaults to UTF-8 when null)
 	 * @return String
-	 * @throws Exception (generic exception)
+	 * @throws Exception generic exception
 	 */
 	public static String convertFileToString(String path, Charset encoding) throws Exception {
-
-		if(encoding==null) {
+		if (encoding == null) {
 			encoding = StandardCharsets.UTF_8;
 		}
-		byte[] encoded = Files.readAllBytes(Paths.get(path));
-
-		return new String(encoded, encoding);
-
+		return Files.readString(Paths.get(path), encoding);
 	}
 
 	/**
 	 * Converts a String to a File
-	 * @param path as String
-	 * @param content as String
-	 * @throws Exception (generic exception)
+	 * @param path path as String
+	 * @param content content as String
+	 * @throws Exception generic exception
 	 */
 	public static void convertStringToFile(String path, String content) throws Exception {
-
-		Files.write( Paths.get(path), content.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE);
-
+		Files.writeString(Paths.get(path), content, StandardOpenOption.CREATE);
 	}
 
 	/**
-	 * Converts a List of String
+	 * Converts a File to a URI
+	 * @param file File object
+	 * @return URI
+	 */
+	public static URI convertFileToURI(File file) {
+		return file.toURI();
+	}
+
+	/**
+	 * Converts a File to a URL
+	 * @param file File object
+	 * @return URL
+	 * @throws Exception generic exception
+	 */
+	public static URL convertFileToURL(File file) throws Exception {
+		return file.toURI().toURL();
+	}
+
+	// ─────────────────────────────────────────────
+	// Source / String
+	// ─────────────────────────────────────────────
+
+	/**
+	 * Converts a String to a Source
+	 * @param string String object
+	 * @return Source
+	 */
+	public static Source convertStringToSource(String string) {
+		return new StreamSource(new StringReader(string));
+	}
+
+	// ─────────────────────────────────────────────
+	// List / String
+	// ─────────────────────────────────────────────
+
+	/**
+	 * Converts a List to a comma-separated String
 	 * @param list List of strings
 	 * @return String
 	 */
-	public static String convertListToString(List<String> list)  {
+	public static String convertListToString(List<String> list) {
 		return String.join(",", list);
 	}
 
 	/**
-	 * Converts a comma separated String to a List
-	 * @param commaSeparatedString List of strings separated by a comma
+	 * Converts a comma-separated String to a List
+	 * @param commaSeparatedString comma-separated String
 	 * @return List
 	 */
-	public static List<String> convertStringToList(String commaSeparatedString)  {
+	public static List<String> convertStringToList(String commaSeparatedString) {
 		return new ArrayList<>(Arrays.asList(commaSeparatedString.split(",")));
 	}
+
+	// ─────────────────────────────────────────────
+	// Reader / String
+	// ─────────────────────────────────────────────
 
 	/**
 	 * Converts a String to a Reader
 	 * @param string String object
 	 * @return Reader
 	 */
-	public static Reader convertStringToReader(String string)  {
-			return new StringReader(string);
+	public static Reader convertStringToReader(String string) {
+		return new StringReader(string);
 	}
 
 	/**
 	 * Converts a Reader to a String
-	 * @param reader (java.io.Reader)
+	 * @param reader java.io.Reader
 	 * @return String
-	 * @throws Exception (generic exception)
+	 * @throws Exception generic exception
 	 */
-	public static String convertReaderToString(Reader reader) throws Exception  {
+	public static String convertReaderToString(Reader reader) throws Exception {
 		return IOUtils.toString(reader);
 	}
 
+	// ─────────────────────────────────────────────
+	// Object conversions
+	// ─────────────────────────────────────────────
+
 	/**
 	 * Converts an Object to a String
-	 * @param object (Generic Object)
+	 * @param object Generic Object
 	 * @return String
 	 */
 	public static String convertObjectToString(Object object) {
 		return String.valueOf(object);
 	}
 
-
 	/**
 	 * Converts an Object to a JSON String
-	 * @param object (Generic Object)
+	 * @param object Generic Object
 	 * @return String
-	 * @throws Exception (generic exception)
+	 * @throws Exception generic exception
 	 */
 	public static String convertObjectToJSONString(Object object) throws Exception {
-		return new ObjectMapper().writeValueAsString(object);
+		return JSON_MAPPER.writeValueAsString(object);
 	}
 
-	//Other object conversions
+	// ─────────────────────────────────────────────
+	// Data-format conversions
+	// ─────────────────────────────────────────────
 
-	/**
-	 * Converts a URI to an org.w3c.dom.Document (XML)
-	 * @param uri (java.net.URI)
-    * @return Document (org.w3c.dom.Document XML document) 
-    * @throws Exception (generic exception)
-	*/	
-	public static Document convertUriToDoc(URI uri) throws Exception {
-
-		URL url = uri.toURL(); // get URL from your uri object
-		InputStream stream = url.openStream();
-
-		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-		factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-		DocumentBuilder builder = factory.newDocumentBuilder();
-
-		Document doc = builder.parse(stream);
-		stream.close();
-
-		return doc;
-
-	}
-
-	/**
-	 * Converts a File to a URI
-	* @param file File object
-	* @return URL
-	*/
-	  public static URI convertFileToURI(File file) {
-	      return file.toURI();
-	  }
-
-	/**
-	 * Converts a File to a URL
-	* @param file File object
-    * @return URL
-    * @throws Exception (generic exception)
-	*/
-   public static URL convertFileToURL(File file) throws Exception {
-      return file.toURI().toURL();
-   }
-
-	//data format conversions
-	
 	/**
 	 * Converts XML to JSON (as String)
-	* @param xml as string
-    * @return json as string
-	* @throws Exception (generic exception)
-	*/
+	 * @param xml as String
+	 * @return json as String
+	 * @throws Exception generic exception
+	 */
 	public static String convertXmlToJson(String xml) throws Exception {
+		String xmlWithoutDeclaration = removeXmlDeclaration(xml);
 
-		JacksonXmlModule xmlModule = new JacksonXmlModule();
-		xmlModule.setDefaultUseWrapper(false);
-		xmlModule.setXMLTextElementName("value");
+		if (!xmlWithoutDeclaration.startsWith("<ObjectNode>")) {
+			xmlWithoutDeclaration = "<ObjectNode>" + xmlWithoutDeclaration + "</ObjectNode>";
+		}
 
-		XmlMapper xmlMapper = new XmlMapper(xmlModule);
-
-		xml = removeXmlDeclaration(xml);
-		xml = "<ObjectNode>" + xml + "</ObjectNode>";
-
-		JsonNode node = xmlMapper.readTree(xml.getBytes(StandardCharsets.UTF_8));
-		ObjectMapper objectMapper = new ObjectMapper();
-
-		return objectMapper.writeValueAsString(node);
-
+		JsonNode node = XML_MAPPER.readTree(xmlWithoutDeclaration.getBytes(StandardCharsets.UTF_8));
+		return JSON_MAPPER.writeValueAsString(node);
 	}
 
 	/**
 	 * Converts XML to YAML (as String)
-	* @param xml as string
-    * @return yaml as string 
-    * @throws Exception (generic exception)
-	*/
+	 * @param xml as String
+	 * @return yaml as String
+	 * @throws Exception generic exception
+	 */
 	public static String convertXmlToYaml(String xml) throws Exception {
-
 		JSONObject xmlJSONObj = XML.toJSONObject(xml);
-		json = xmlJSONObj.toString();
-
-		JsonNode jsonNode = new ObjectMapper().readTree(json);
-		yaml = new YAMLMapper().writeValueAsString(jsonNode);
-
-		return yaml;
-
+		JsonNode jsonNode = JSON_MAPPER.readTree(xmlJSONObj.toString());
+		return YAML_MAPPER.writeValueAsString(jsonNode);
 	}
 
 	/**
 	 * Converts XML to CSV (as String)
-	* @param xml as String
-    * @return csv as String
-    * @throws Exception (generic exception)
-	*/
+	 * @param xml as String
+	 * @return csv as String
+	 * @throws Exception generic exception
+	 */
 	public static String convertXmlToCsv(String xml) throws Exception {
-
-		String[] xmlLines = xml.split(System.lineSeparator());
-		String stylesheet = "src/main/resources/xmltocsv.generic.xsl"; 
-		if(xmlLines.length > 2 && xmlLines[0].equals("<rows>")||xmlLines[1].equals("<rows>")) {
-			stylesheet = "src/main/resources/xmltocsv.xsl";
+		if (xml == null || xml.isEmpty()) {
+			return "";
 		}
-		
-		Document document = convertStringToDoc(xml);
-	    StringWriter writer = new StringWriter();
-	    
-        StreamSource stylesource = new StreamSource(new File(stylesheet));
-        Transformer transformer = TransformerFactory.newInstance().newTransformer(stylesource);
-        Source source = new DOMSource(document);
-        Result result = new javax.xml.transform.stream.StreamResult(writer);
-        transformer.transform(source, result);
-        
-		csv = writer.toString();
 
-		return csv;
+		StringWriter stringWriter = new StringWriter();
 
+		try (CSVWriter csvWriter = new CSVWriter(stringWriter,
+				ICSVWriter.DEFAULT_SEPARATOR,
+				ICSVWriter.DEFAULT_QUOTE_CHARACTER,
+				ICSVWriter.DEFAULT_ESCAPE_CHARACTER,
+				ICSVWriter.DEFAULT_LINE_END)) {
+
+			JsonNode rootNode = XML_MAPPER_PLAIN.readTree(xml.getBytes());
+			JsonNode rows = rootNode.get("row");
+
+			if (rows != null) {
+				if (rows.isArray()) {
+					for (JsonNode row : rows) {
+						writeRow(csvWriter, row);
+					}
+				} else {
+					writeRow(csvWriter, rows);
+				}
+			}
+		}
+
+		return stringWriter.toString().trim();
+	}
+
+	private static void writeRow(CSVWriter csvWriter, JsonNode row) {
+		JsonNode items = row.get("item");
+		if (items != null && items.isArray()) {
+			List<String> data = new ArrayList<>();
+			for (JsonNode item : items) {
+				data.add(item.asText());
+			}
+			csvWriter.writeNext(data.toArray(new String[0]), false);
+		}
 	}
 
 	/**
 	 * Converts JSON to XML (as String)
-	* @param json as String
-    * @return xml as String
-    * @throws Exception (generic exception)
- 
-	*/
+	 * @param json as String
+	 * @return xml as String
+	 * @throws Exception generic exception
+	 */
 	public static String convertJsonToXml(String json) throws Exception {
+		// Pre-check for empty or null input
+		if (json == null || json.trim().isEmpty()) {
+			return "";
+		}
 
-		String xml;
-		if(json.startsWith("[")){
-			JSONArray jsonArray = new JSONArray(json);
+		// Use String.charAt(0) for faster prefix check
+		boolean isArray = json.charAt(0) == '[';
 
-			// Convert the JSONArray to a List of Maps
-			List<Object> list = jsonArray.toList();
+		Object jsonObject;
+		if (isArray) {
+			jsonObject = new JSONArray(json).toList();
+		} else {
+			jsonObject = JSON_MAPPER.readTree(json);
+		}
 
-			// Convert the List of Maps to XML
-			XmlMapper xmlMapper = new XmlMapper();
-			xml = xmlMapper.writeValueAsString(list);
-		}else{
-			ObjectMapper objectMapper = new ObjectMapper();
-			JsonNode jsonNode = objectMapper.readTree(json);
+		// Write XML in one go, avoiding intermediate String manipulation
+		String xml = XML_MAPPER_PLAIN.writeValueAsString(jsonObject);
 
-			XmlMapper xmlMapper = new XmlMapper();
-			xml = xmlMapper.writeValueAsString(jsonNode);
-
-			//if xml already has a root node then ObjectNode element can be stripped
-			String newXml = StringUtils.substringBetween(xml,"<ObjectNode>","</ObjectNode>");
-			if(isXML(newXml)){
-				xml = newXml;
+		// Only process if not an array and contains ObjectNode
+		if (!isArray && xml.contains("<ObjectNode>")) {
+			int start = xml.indexOf("<ObjectNode>") + "<ObjectNode>".length();
+			int end = xml.indexOf("</ObjectNode>");
+			if (start > 0 && end > start) {
+				xml = xml.substring(start, end);
 			}
-
-		}		
+		}
 
 		return xml;
-
 	}
 
 	/**
 	 * Converts JSON to YAML (as String)
-	* @param json as string
-    * @return yaml as string 
-    * @throws Exception (generic exception)
-	*/
+	 * @param json as String
+	 * @return yaml as String
+s	 * @throws Exception generic exception
+	 */
 	public static String convertJsonToYaml(String json) throws Exception {
-
-		JsonNode jsonNodeTree = new ObjectMapper().readTree(json);
-		yaml = new YAMLMapper().writeValueAsString(jsonNodeTree);
-
-		return yaml;
-
+		JsonNode jsonNodeTree = JSON_MAPPER.readTree(json);
+		return YAML_MAPPER.writeValueAsString(jsonNodeTree);
 	}
 
 	/**
 	 * Converts JSON to CSV (as String)
-	* @param json as string
-    * @return csv as string 
-    * @throws Exception (generic exception)
-	*/
-	public static String convertJsonToCsv(String json) throws Exception{
-
-		xml = convertJsonToXml(json);
-		csv = convertXmlToCsv(xml);
-
-		return csv;
-
+	 * @param json as String
+	 * @return csv as String
+	 * @throws Exception generic exception
+	 */
+	public static String convertJsonToCsv(String json) throws Exception {
+		String xml = convertJsonToXml(json);
+		return convertXmlToCsv(xml);
 	}
 
 	/**
-	 * 	 * Converts CSV to XML (as String)
-	* @param csv as string
-    * @return xml as string 
-    * @throws Exception (generic exception)
-	*/
-	public static String convertCsvToXml(String csv) throws Exception {
-
+	 * Converts CSV to XML (as String)
+	 * @param csv as String
+	 * @return xml as String
+	 */
+	public static String convertCsvToXml(String csv) {
 		CsvParserSettings settings = new CsvParserSettings();
 		settings.detectFormatAutomatically();
-		settings.setEmptyValue("");
-		settings.setNullValue("");
 		CsvParser parser = new CsvParser(settings);
-		
-		InputStream input = convertStringToStream(csv);
-		
-		List<String[]> rows = parser.parseAll(input);
 
-		XStream xstream = new XStream();
-		xstream.alias("rows", List.class);
-		xstream.alias("row", String[].class);
-		xstream.alias("item", String.class);
-	
-		xml = xstream.toXML(rows);
+		StringBuilder sb = new StringBuilder(INITIAL_BUFFER_SIZE);
+		sb.append("<?xml version='1.0' encoding='UTF-8'?><rows>");
 
-		input.close();
-
-		return xml;
-
-	}
-
-	/**
-	 * 	 * Converts CSV to JSON (as String)
-	* @param csv as string
-    * @return json as string 
-    * @throws Exception (generic exception)
-	*/
-	public static String convertCsvToJson(String csv) throws Exception{
-
-        xml = convertCsvToXml(csv);
-        json = convertXmlToJson(xml);
-        	    
-		return json;
-
-	}
-
-	/**
-	 * 	 * Converts CSV to YAML (as String)
-	* @param csv as string
-    * @return yaml as string 
-    * @throws Exception (generic exception)
-	*/
-	public static String convertCsvToYaml(String csv) throws Exception{
-
-        xml = convertCsvToXml(csv);
-        json = convertXmlToYaml(xml);
-        	    
-		return json;
-
-	}
-
-	/**
-	 * 	 * Converts YAML to XML (as String)
-	* @param yaml as string
-    * @return xml as string 
-    * @throws Exception (generic exception)
-	*/
-	public static String convertYamlToXml(String yaml) throws Exception {
-
-		json = convertYamlToJson(yaml);
-		xml = convertJsonToXml(json);
-
-		return xml;
-
-	}
-
-	/**
-	 * 	 * Converts YAML to JSON (as String)
-	* @param yaml as string
-    * @return json as string 
-    * @throws Exception (generic exception)
-	*/	
-	public static String convertYamlToJson(String yaml) throws Exception {
-
-		ObjectMapper yamlReader = new ObjectMapper(new YAMLFactory());
-		Object obj = yamlReader.readValue(yaml, Object.class);
-
-		ObjectMapper jsonWriter = new ObjectMapper();
-		json = jsonWriter.writeValueAsString(obj);
-
-		return json;
-
-	}
-
-	/**
-	 * 	 * Converts YAML to CSV (as String)
-	* @param yaml as string
-    * @return csv as string 
-    * @throws Exception (generic exception)
-	*/
-	public static String convertYamlToCsv(String yaml) throws Exception {
-
-		xml = convertYamlToXml(yaml);
-		csv = convertXmlToCsv(xml);
-
-		return csv;
-	}
-
-	private static boolean isXML(String xml) {
-
-		try {
-			SAXParserFactory.newInstance().newSAXParser().getXMLReader().parse(new InputSource(new StringReader(xml)));
-			return true;
-		} catch (ParserConfigurationException | SAXException | IOException ex) {
-			return false;
+		try(StringReader stringReader = new StringReader(csv)) {
+			parser.beginParsing(stringReader);
+			String[] row;
+			while ((row = parser.parseNext()) != null) {
+				sb.append("<row>");
+				for (String col : row) {
+					sb.append("<item>");
+					appendEscaped(sb, col != null ? col : "");
+					sb.append("</item>");
+				}
+				sb.append("</row>");
+			}
+		} finally {
+			parser.stopParsing();
 		}
 
+		sb.append("</rows>");
+		return sb.toString();
 	}
+
+	/**
+	 * Converts CSV to JSON (as String)
+	 * @param csv as String
+	 * @return json as String
+	 * @throws Exception generic exception
+	 */
+	public static String convertCsvToJson(String csv) throws Exception {
+		String xml = convertCsvToXml(csv);
+		return convertXmlToJson(xml);
+	}
+
+	/**
+	 * Converts CSV to YAML (as String)
+	 * @param csv as String
+	 * @return yaml as String
+	 * @throws Exception generic exception
+	 */
+	public static String convertCsvToYaml(String csv) throws Exception {
+		String xml = convertCsvToXml(csv);
+		return convertXmlToYaml(xml);
+	}
+
+	/**
+	 * Converts YAML to XML (as String)
+	 * @param yaml as String
+	 * @return xml as String
+	 * @throws Exception generic exception
+	 */
+	public static String convertYamlToXml(String yaml) throws Exception {
+		String json = convertYamlToJson(yaml);
+		return convertJsonToXml(json);
+	}
+
+	/**
+	 * Converts YAML to JSON (as String)
+	 * @param yaml as String
+	 * @return json as String
+	 * @throws Exception generic exception
+	 */
+	public static String convertYamlToJson(String yaml) throws Exception {
+		Object obj = YAML_READER.readValue(yaml, Object.class);
+		return JSON_MAPPER.writeValueAsString(obj);
+	}
+
+	/**
+	 * Converts YAML to CSV (as String)
+	 * @param yaml as String
+	 * @return csv as String
+	 * @throws Exception generic exception
+	 */
+	public static String convertYamlToCsv(String yaml) throws Exception {
+		String xml = convertYamlToXml(yaml);
+		return convertXmlToCsv(xml);
+	}
+
+	// ─────────────────────────────────────────────
+	// Format detection
+	// ─────────────────────────────────────────────
+
+	public static boolean isXML(String xml) {
+		if (xml == null || xml.isBlank()) return false;
+		String t = xml.stripLeading();
+		if (!t.startsWith("<")) return false;
+		try {
+			SAXParserFactory.newDefaultInstance()
+					.newSAXParser()
+					.getXMLReader()
+					.parse(new InputSource(new StringReader(xml)));
+			return true;
+		} catch (Exception ex) {
+			return false;
+		}
+	}
+
+	public static boolean isJson(String json) {
+		if (json == null || json.isBlank()) return false;
+		String t = json.stripLeading();
+		if (!t.startsWith("{") && !t.startsWith("[")) return false;
+		try {
+			JSON_MAPPER.readTree(json);
+			return true;
+		} catch (Exception ex) {
+			return false;
+		}
+	}
+
+	public static boolean isYaml(String yaml) {
+		if (yaml == null || yaml.isBlank()) return false;
+		try {
+			YAML_MAPPER.readTree(yaml);
+			return true;
+		} catch (Exception ex) {
+			return false;
+		}
+	}
+
+	// ─────────────────────────────────────────────
+	// Internal helpers
+	// ─────────────────────────────────────────────
 
 	private static String removeXmlDeclaration(String xml) {
 		return xml.replaceFirst("^<\\?xml.*?\\?>", "").trim();
+	}
+
+	private static DocumentBuilderFactory createSecureDocumentBuilderFactory() {
+
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+
+		try {
+			// Primary defense: block all DOCTYPE declarations entirely
+			factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+			// Belt-and-suspenders: disable external general and parameter entities individually
+			factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+			factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+			// Disable external DTD loading
+			factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+		} catch (ParserConfigurationException e) {
+			// Fallback for non-Xerces parsers that don't support the above features
+			factory.setValidating(false);
+			factory.setNamespaceAware(true);
+		}
+		// Disable XInclude processing
+		factory.setXIncludeAware(false);
+		// Disable entity expansion
+		factory.setExpandEntityReferences(false);
+		return factory;
+	}
+
+	private static void appendEscaped(StringBuilder sb, String value) {
+		for (int i = 0, len = value.length(); i < len; i++) {
+			char c = value.charAt(i);
+			switch (c) {
+				case '<'  -> sb.append("&lt;");
+				case '>'  -> sb.append("&gt;");
+				case '&'  -> sb.append("&amp;");
+				case '"'  -> sb.append("&quot;");
+				case '\'' -> sb.append("&apos;");
+				default   -> sb.append(c);
+			}
+		}
 	}
 
 }
