@@ -10,7 +10,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
 
-import com.fasterxml.jackson.dataformat.xml.JacksonXmlModule;
 import com.opencsv.CSVWriter;
 import com.opencsv.ICSVWriter;
 import org.apache.commons.io.IOUtils;
@@ -31,13 +30,12 @@ import javax.xml.transform.stream.StreamSource;
 import org.w3c.dom.DOMConfiguration;
 import org.w3c.dom.Document;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.dataformat.xml.XmlMapper;
+import tools.jackson.dataformat.yaml.YAMLMapper;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.w3c.dom.Node;
 import org.w3c.dom.ls.DOMImplementationLS;
 import org.w3c.dom.ls.LSSerializer;
@@ -52,9 +50,13 @@ public final class DocConverter {
 	// Cached, thread-safe singletons
 	// ─────────────────────────────────────────────
 
-	private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
-	private static final XmlMapper XML_MAPPER = new XmlMapper(createXmlModule());
+	private static final XmlMapper XML_MAPPER = XmlMapper.builder()
+			.defaultUseWrapper(false)
+			.nameForTextElement("value") // This is the Jackson 3 equivalent of setXMLTextElementName
+			.build();
+
+	private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
 	private static final YAMLMapper YAML_MAPPER = new YAMLMapper();
 
@@ -62,16 +64,14 @@ public final class DocConverter {
 
 	private static final TransformerFactory TRANSFORMER_FACTORY = TransformerFactory.newDefaultInstance();
 
-	private static final ObjectMapper YAML_READER = new ObjectMapper(new YAMLFactory());
+	private static final ObjectMapper YAML_READER = new tools.jackson.dataformat.yaml.YAMLMapper();
 
 	private static final int INITIAL_BUFFER_SIZE = 8192;
 
-	private static JacksonXmlModule createXmlModule() {
-		JacksonXmlModule m = new JacksonXmlModule();
-		m.setDefaultUseWrapper(false);
-		m.setXMLTextElementName("value");
-		return m;
-	}
+	private static final byte[] OBJECT_NODE_OPEN  = "<ObjectNode>".getBytes(StandardCharsets.UTF_8);
+	private static final byte[] OBJECT_NODE_CLOSE = "</ObjectNode>".getBytes(StandardCharsets.UTF_8);
+	private static final byte[] XML_DECL_PREFIX   = "<?xml".getBytes(StandardCharsets.UTF_8);
+
 
 	// Private constructor – utility class
 	private DocConverter() {}
@@ -340,9 +340,8 @@ public final class DocConverter {
 	 * Converts an Object to a JSON String
 	 * @param object Generic Object
 	 * @return String
-	 * @throws Exception generic exception
 	 */
-	public static String convertObjectToJSONString(Object object) throws Exception {
+	public static String convertObjectToJSONString(Object object) {
 		return JSON_MAPPER.writeValueAsString(object);
 	}
 
@@ -357,23 +356,53 @@ public final class DocConverter {
 	 * @throws Exception generic exception
 	 */
 	public static String convertXmlToJson(String xml) throws Exception {
-		String xmlWithoutDeclaration = removeXmlDeclaration(xml);
+		byte[] xmlBytes = xml.getBytes(StandardCharsets.UTF_8);
+		int start = 0;
 
-		if (!xmlWithoutDeclaration.startsWith("<ObjectNode>")) {
-			xmlWithoutDeclaration = "<ObjectNode>" + xmlWithoutDeclaration + "</ObjectNode>";
+		// Skip XML declaration at byte level — no regex, no String copy
+		if (startsWith(xmlBytes)) {
+			start = indexOf(xmlBytes) + 1;
+			while (start < xmlBytes.length && xmlBytes[start] <= ' ') start++; // trim
 		}
 
-		JsonNode node = XML_MAPPER.readTree(xmlWithoutDeclaration.getBytes(StandardCharsets.UTF_8));
+		boolean needsWrapper = !startsWith(xmlBytes, start, OBJECT_NODE_OPEN);
+
+		// Single pre-sized buffer — no realloc
+		int capacity = (needsWrapper ? OBJECT_NODE_OPEN.length + OBJECT_NODE_CLOSE.length : 0)
+				+ (xmlBytes.length - start);
+		ByteArrayOutputStream bos = new ByteArrayOutputStream(capacity);
+
+		if (needsWrapper) bos.write(OBJECT_NODE_OPEN);
+		bos.write(xmlBytes, start, xmlBytes.length - start);
+		if (needsWrapper) bos.write(OBJECT_NODE_CLOSE);
+
+		JsonNode node = XML_MAPPER.readTree(bos.toByteArray());
 		return JSON_MAPPER.writeValueAsString(node);
+	}
+
+	private static boolean startsWith(byte[] data) {
+		return startsWith(data, 0, DocConverter.XML_DECL_PREFIX);
+	}
+
+	private static boolean startsWith(byte[] data, int offset, byte[] prefix) {
+		if (data.length - offset < prefix.length) return false;
+		for (int i = 0; i < prefix.length; i++)
+			if (data[offset + i] != prefix[i]) return false;
+		return true;
+	}
+
+	private static int indexOf(byte[] data) {
+		for (int i = 0; i < data.length; i++)
+			if (data[i] == (byte) 62) return i;
+		return -1;
 	}
 
 	/**
 	 * Converts XML to YAML (as String)
 	 * @param xml as String
 	 * @return yaml as String
-	 * @throws Exception generic exception
 	 */
-	public static String convertXmlToYaml(String xml) throws Exception {
+	public static String convertXmlToYaml(String xml) {
 		JSONObject xmlJSONObj = XML.toJSONObject(xml);
 		JsonNode jsonNode = JSON_MAPPER.readTree(xmlJSONObj.toString());
 		return YAML_MAPPER.writeValueAsString(jsonNode);
@@ -420,7 +449,7 @@ public final class DocConverter {
 		if (items != null && items.isArray()) {
 			List<String> data = new ArrayList<>();
 			for (JsonNode item : items) {
-				data.add(item.asText());
+				data.add(item.asString());
 			}
 			csvWriter.writeNext(data.toArray(new String[0]), false);
 		}
@@ -430,9 +459,8 @@ public final class DocConverter {
 	 * Converts JSON to XML (as String)
 	 * @param json as String
 	 * @return xml as String
-	 * @throws Exception generic exception
 	 */
-	public static String convertJsonToXml(String json) throws Exception {
+	public static String convertJsonToXml(String json) {
 		// Pre-check for empty or null input
 		if (json == null || json.trim().isEmpty()) {
 			return "";
@@ -467,9 +495,8 @@ public final class DocConverter {
 	 * Converts JSON to YAML (as String)
 	 * @param json as String
 	 * @return yaml as String
-s	 * @throws Exception generic exception
 	 */
-	public static String convertJsonToYaml(String json) throws Exception {
+	public static String convertJsonToYaml(String json) {
 		JsonNode jsonNodeTree = JSON_MAPPER.readTree(json);
 		return YAML_MAPPER.writeValueAsString(jsonNodeTree);
 	}
@@ -533,9 +560,8 @@ s	 * @throws Exception generic exception
 	 * Converts CSV to YAML (as String)
 	 * @param csv as String
 	 * @return yaml as String
-	 * @throws Exception generic exception
 	 */
-	public static String convertCsvToYaml(String csv) throws Exception {
+	public static String convertCsvToYaml(String csv) {
 		String xml = convertCsvToXml(csv);
 		return convertXmlToYaml(xml);
 	}
@@ -544,9 +570,8 @@ s	 * @throws Exception generic exception
 	 * Converts YAML to XML (as String)
 	 * @param yaml as String
 	 * @return xml as String
-	 * @throws Exception generic exception
 	 */
-	public static String convertYamlToXml(String yaml) throws Exception {
+	public static String convertYamlToXml(String yaml) {
 		String json = convertYamlToJson(yaml);
 		return convertJsonToXml(json);
 	}
@@ -555,9 +580,8 @@ s	 * @throws Exception generic exception
 	 * Converts YAML to JSON (as String)
 	 * @param yaml as String
 	 * @return json as String
-	 * @throws Exception generic exception
 	 */
-	public static String convertYamlToJson(String yaml) throws Exception {
+	public static String convertYamlToJson(String yaml) {
 		Object obj = YAML_READER.readValue(yaml, Object.class);
 		return JSON_MAPPER.writeValueAsString(obj);
 	}
@@ -577,6 +601,11 @@ s	 * @throws Exception generic exception
 	// Format detection
 	// ─────────────────────────────────────────────
 
+	/**
+	 * Checks if String is a XML
+	 * @param xml as String
+	 * @return check as boolean
+	 */
 	public static boolean isXML(String xml) {
 		if (xml == null || xml.isBlank()) return false;
 		String t = xml.stripLeading();
@@ -592,6 +621,11 @@ s	 * @throws Exception generic exception
 		}
 	}
 
+	/**
+	 * Checks if String is a JSON
+	 * @param json as String
+	 * @return check as boolean
+	 */
 	public static boolean isJson(String json) {
 		if (json == null || json.isBlank()) return false;
 		String t = json.stripLeading();
@@ -604,6 +638,11 @@ s	 * @throws Exception generic exception
 		}
 	}
 
+	/**
+	 * Checks if String is a YAML
+	 * @param yaml as String
+	 * @return check as boolean
+	 */
 	public static boolean isYaml(String yaml) {
 		if (yaml == null || yaml.isBlank()) return false;
 		try {
@@ -617,11 +656,6 @@ s	 * @throws Exception generic exception
 	// ─────────────────────────────────────────────
 	// Internal helpers
 	// ─────────────────────────────────────────────
-
-	private static String removeXmlDeclaration(String xml) {
-		return xml.replaceFirst("^<\\?xml.*?\\?>", "").trim();
-	}
-
 	private static DocumentBuilderFactory createSecureDocumentBuilderFactory() {
 
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();

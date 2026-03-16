@@ -42,27 +42,27 @@ public class DocConverterBenchmark {
     }
 
     @Benchmark
-    public String xmlToYaml() throws Exception {
+    public String xmlToYaml() {
         return DocConverter.convertXmlToYaml(SIMPLE_XML);
     }
 
     @Benchmark
-    public String jsonToXml() throws Exception {
+    public String jsonToXml(){
         return DocConverter.convertJsonToXml(SIMPLE_JSON);
     }
 
     @Benchmark
-    public String jsonToYaml() throws Exception {
+    public String jsonToYaml() {
         return DocConverter.convertJsonToYaml(SIMPLE_JSON);
     }
 
     @Benchmark
-    public String yamlToJson() throws Exception {
+    public String yamlToJson() {
         return DocConverter.convertYamlToJson(SIMPLE_YAML);
     }
 
     @Benchmark
-    public String yamlToXml() throws Exception {
+    public String yamlToXml() {
         return DocConverter.convertYamlToXml(SIMPLE_YAML);
     }
 
@@ -77,7 +77,12 @@ public class DocConverterBenchmark {
     }
 
     public static void main(String[] args) throws Exception {
-        org.openjdk.jmh.Main.main(args);
+        // Filter out nulls if any exist in the array
+        java.util.List<String> sanitizedArgs = java.util.Arrays.stream(args)
+                .filter(arg -> arg != null && !arg.isEmpty())
+                .toList();
+
+        org.openjdk.jmh.Main.main(sanitizedArgs.toArray(new String[0]));
     }
 
 }

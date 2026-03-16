@@ -55,18 +55,19 @@ Conversion to csv expects input in the following flat format:
 ## Get code
 
 From version 1.4.0 DocConverter is build for JDK11 and later.
+From version 2.0.0 DocConverter is build for JDK21 and later. This version also uses Jackson 3.
 
 For maven:
 
 	<dependency>
 	  <groupId>io.github.assimbly</groupId>
 	  <artifactId>docconverter</artifactId>
-	  <version>1.17.0</version>
+	  <version>2.0.0</version>
 	</dependency>	
 	
 For gradle:
 
-	compile 'io.github.assimbly:docconverter:1.17.0'	
+	compile 'io.github.assimbly:docconverter:2.0.0'	
 
 ## Limits	
 

@@ -1,8 +1,9 @@
 package org.assimbly.docconverter;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.dataformat.yaml.YAMLMapper;
+
 import com.opencsv.CSVReader;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
@@ -31,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class DocConverterTest {
 
-	private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
+	private static final ObjectMapper YAML_MAPPER = new YAMLMapper();
 	private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {};
 
 	// ─────────────────────────────────────────────
@@ -104,7 +105,7 @@ rows:
 	}
 
 	@Test
-	void convertXmlToYaml() throws Exception {
+	void convertXmlToYaml() {
 		Map<String, Object> expected = YAML_MAPPER.readValue(SIMPLE_YAML, MAP_TYPE);
 		Map<String, Object> actual   = YAML_MAPPER.readValue(DocConverter.convertXmlToYaml(SIMPLE_XML), MAP_TYPE);
 		assertEquals(expected, actual);
@@ -128,21 +129,21 @@ rows:
 	}
 
 	@Test
-	void convertJsonToYaml() throws Exception {
+	void convertJsonToYaml() {
 		Map<String, Object> expected = YAML_MAPPER.readValue(SIMPLE_YAML, MAP_TYPE);
 		Map<String, Object> actual   = YAML_MAPPER.readValue(DocConverter.convertJsonToYaml(SIMPLE_JSON), MAP_TYPE);
 		assertEquals(expected, actual);
 	}
 
 	@Test
-	void convertJsonToXml() throws Exception {
+	void convertJsonToXml() {
 		String expected = "<headers><Content-Type><type>header</type><language>constant</language><content>text/xml</content></Content-Type></headers>";
 		XmlAssert.assertThat(Input.fromString(DocConverter.convertJsonToXml(SIMPLE_JSON)))
 				.and(Input.fromString(expected)).areIdentical();
 	}
 
 	@Test
-	void convertJsonArrayToXml() throws Exception {
+	void convertJsonArrayToXml() {
 		String expected = "<ArrayList><item>Ford</item><item>BMW</item><item>Fiat</item></ArrayList>";
 		XmlAssert.assertThat(Input.fromString(DocConverter.convertJsonToXml(SIMPLE_JSON_ARRAY)))
 				.and(Input.fromString(expected)).areIdentical();
@@ -167,14 +168,14 @@ rows:
 	}
 
 	@Test
-	void convertYamlToXml() throws Exception {
+	void convertYamlToXml() {
 		String expected = "<headers><Content-Type><language>constant</language><type>header</type><content>text/xml</content></Content-Type></headers>";
 		XmlAssert.assertThat(Input.fromString(DocConverter.convertYamlToXml(SIMPLE_YAML)))
 				.and(Input.fromString(expected)).areIdentical();
 	}
 
 	@Test
-	void convertYamlToJson() throws Exception {
+	void convertYamlToJson() {
 		String expected = "{\"headers\":{\"Content-Type\":{\"language\":\"constant\",\"type\":\"header\",\"content\":\"text/xml\"}}}";
 		JSONAssert.assertEquals(expected, DocConverter.convertYamlToJson(SIMPLE_YAML), JSONCompareMode.LENIENT);
 	}
@@ -209,7 +210,7 @@ rows:
 	}
 
 	@Test
-	void convertCsvToYaml() throws Exception {
+	void convertCsvToYaml() {
 		Map<String, Object> expected = YAML_MAPPER.readValue(CSV_AS_YAML, MAP_TYPE);
         Map<String, Object> actual   = YAML_MAPPER.readValue(DocConverter.convertCsvToYaml(SIMPLE_CSV), MAP_TYPE);
 		assertEquals(expected, actual);
@@ -220,14 +221,14 @@ rows:
 	// ─────────────────────────────────────────────
 
 	@Test
-	void roundTrip_jsonToYamlAndBack() throws Exception {
+	void roundTrip_jsonToYamlAndBack() {
 		String yaml     = DocConverter.convertJsonToYaml(SIMPLE_JSON);
 		String backJson = DocConverter.convertYamlToJson(yaml);
 		JSONAssert.assertEquals(SIMPLE_JSON, backJson, JSONCompareMode.LENIENT);
 	}
 
 	@Test
-	void roundTrip_yamlToXmlAndBack() throws Exception {
+	void roundTrip_yamlToXmlAndBack() {
 		String xml      = DocConverter.convertYamlToXml(SIMPLE_YAML);
 		String backYaml = DocConverter.convertXmlToYaml(xml);
 		Map<String, Object> expected = YAML_MAPPER.readValue(SIMPLE_YAML, MAP_TYPE);
@@ -240,7 +241,7 @@ rows:
 	// ─────────────────────────────────────────────
 
 	@Test
-	void convertJsonToXml_escapesAmpersandAndAngleBrackets() throws Exception {
+	void convertJsonToXml_escapesAmpersandAndAngleBrackets() {
 		String json   = "{\"note\":\"a & b < c > d\"}";
 		String xml    = DocConverter.convertJsonToXml(json);
 		// Values must be XML-escaped in the output
@@ -256,7 +257,7 @@ rows:
 	}
 
 	@Test
-	void convertJsonToYaml_preservesUnicode() throws Exception {
+	void convertJsonToYaml_preservesUnicode() {
 		String json = "{\"message\":\"héllo wörld\"}";
 		String yaml = DocConverter.convertJsonToYaml(json);
 		assertThat(yaml).contains("héllo wörld");
@@ -275,21 +276,21 @@ rows:
 	// ─────────────────────────────────────────────
 
 	@Test
-	void convertJsonToXml_handlesNumericValues() throws Exception {
+	void convertJsonToXml_handlesNumericValues() {
 		String json = "{\"stats\":{\"count\":42,\"ratio\":3.14}}";
 		String xml  = DocConverter.convertJsonToXml(json);
 		assertThat(xml).contains("42").contains("3.14");
 	}
 
 	@Test
-	void convertJsonToXml_handlesBooleanValues() throws Exception {
+	void convertJsonToXml_handlesBooleanValues() {
 		String json = "{\"flags\":{\"active\":true,\"deleted\":false}}";
 		String xml  = DocConverter.convertJsonToXml(json);
 		assertThat(xml).contains("true").contains("false");
 	}
 
 	@Test
-	void convertYamlToJson_handlesBooleanAndNumericValues() throws Exception {
+	void convertYamlToJson_handlesBooleanAndNumericValues() {
 		String yaml     = "---\nactive: true\ncount: 7\nratio: 2.5\n";
 		String json     = DocConverter.convertYamlToJson(yaml);
 		JSONAssert.assertEquals("{\"active\":true,\"count\":7,\"ratio\":2.5}", json, JSONCompareMode.STRICT);
@@ -300,7 +301,7 @@ rows:
 	// ─────────────────────────────────────────────
 
 	@Test
-	void convertJsonToXml_handlesFlatStructure() throws Exception {
+	void convertJsonToXml_handlesFlatStructure() {
 
 		String json = "{\"key\":\"value\"}";
 		String xml  = DocConverter.convertJsonToXml(json);
@@ -320,7 +321,7 @@ rows:
 	}
 
 	@Test
-	void convertJsonToYaml_handlesArray() throws Exception {
+	void convertJsonToYaml_handlesArray() {
 		String json     = "{\"items\":[\"one\",\"two\",\"three\"]}";
 		String yaml     = DocConverter.convertJsonToYaml(json);
 		String backJson = DocConverter.convertYamlToJson(yaml);
@@ -339,7 +340,7 @@ rows:
 
 	@ParameterizedTest
 	@ValueSource(strings = {"", "   "})
-	void convertJsonToXml_throwsOrReturnsEmptyOnBlankInput(String blank) throws Exception {
+	void convertJsonToXml_throwsOrReturnsEmptyOnBlankInput(String blank) {
 		Assertions.assertEquals("",DocConverter.convertJsonToXml(blank));
 	}
 
@@ -597,7 +598,7 @@ rows:
 	}
 
 	@Test
-	void convertObjectToJSONString_serializesFields() throws Exception {
+	void convertObjectToJSONString_serializesFields() {
 		record Person(String name, int age) {}
 		assertThat(convertObjectToJSONString(new Person("Alice", 30)))
 				.contains("\"name\"", "Alice", "\"age\"", "30");
