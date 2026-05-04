@@ -79,7 +79,7 @@ public class DocConverterBenchmark {
     public static void main(String[] args) throws Exception {
         // Filter out nulls if any exist in the array
         java.util.List<String> sanitizedArgs = java.util.Arrays.stream(args)
-                .filter(arg -> arg != null && !arg.isEmpty())
+                .filter(arg -> arg != null && !arg.isEmpty() && !arg.equals("all"))
                 .toList();
 
         org.openjdk.jmh.Main.main(sanitizedArgs.toArray(new String[0]));

@@ -46,14 +46,9 @@ import org.xml.sax.InputSource;
  */
 public final class DocConverter {
 
-	// ─────────────────────────────────────────────
-	// Cached, thread-safe singletons
-	// ─────────────────────────────────────────────
-
-
 	private static final XmlMapper XML_MAPPER = XmlMapper.builder()
 			.defaultUseWrapper(false)
-			.nameForTextElement("value") // This is the Jackson 3 equivalent of setXMLTextElementName
+			.nameForTextElement("value")
 			.build();
 
 	private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
@@ -64,7 +59,7 @@ public final class DocConverter {
 
 	private static final TransformerFactory TRANSFORMER_FACTORY = TransformerFactory.newDefaultInstance();
 
-	private static final ObjectMapper YAML_READER = new tools.jackson.dataformat.yaml.YAMLMapper();
+	private static final ObjectMapper YAML_READER = new YAMLMapper();
 
 	private static final int INITIAL_BUFFER_SIZE = 8192;
 
@@ -478,6 +473,7 @@ public final class DocConverter {
 
 		// Write XML in one go, avoiding intermediate String manipulation
 		String xml = XML_MAPPER_PLAIN.writeValueAsString(jsonObject);
+		xml = xml.replace("&#xd;", "");
 
 		// Only process if not an array and contains ObjectNode
 		if (!isArray && xml.contains("<ObjectNode>")) {
