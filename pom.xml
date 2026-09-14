@@ -9,7 +9,7 @@
 
 	<groupId>io.github.assimbly</groupId>
 	<artifactId>docconverter</artifactId>
-	<version>2.0.1</version>
+	<version>3.0.0</version>
 
 	<packaging>jar</packaging>
 
@@ -44,26 +44,26 @@
 		<benchmark>all</benchmark>
 
 		<!-- compile dependencies versions -->
-		<commons-collections4.version>4.5.0</commons-collections4.version>
-		<commons-io.version>2.22.0</commons-io.version>
-		<jackson.version>3.1.3</jackson.version>
-		<json.version>20251224</json.version>
-		<opencsv.version>5.12.0</opencsv.version>
-		<sfm-csv.version>9.0.2</sfm-csv.version>
-		<univocity-parsers.version>2.9.1</univocity-parsers.version>
-		<xstream.version>1.4.21</xstream.version>
+		<jackson.version>3.2.2</jackson.version>
 
 		<!-- test dependencies versions -->
 		<assertj.version>3.27.7</assertj.version>
 		<jmh.version>1.37</jmh.version>
 		<jsonassert.version>1.5.3</jsonassert.version>
-		<junit.jupiter.version>6.0.3</junit.jupiter.version>
-		<xmlunit.version>2.11.0</xmlunit.version>
+		<junit.jupiter.version>6.1.3</junit.jupiter.version>
+		<xmlunit.version>2.13.0</xmlunit.version>
 
 	</properties>
 
 	<dependencyManagement>
 		<dependencies>
+			<dependency>
+				<groupId>tools.jackson</groupId>
+				<artifactId>jackson-bom</artifactId>
+				<version>${jackson.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
 			<dependency>
 				<groupId>org.junit</groupId>
 				<artifactId>junit-bom</artifactId>
@@ -79,70 +79,20 @@
 		<!-- compile dependencies -->
 
 		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-collections4</artifactId>
-			<version>${commons-collections4.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>commons-io</groupId>
-			<artifactId>commons-io</artifactId>
-			<version>${commons-io.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>tools.jackson.core</groupId>
-			<artifactId>jackson-core</artifactId>
-			<version>${jackson.version}</version>
-		</dependency>
-		<dependency>
 			<groupId>tools.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-			<version>${jackson.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>tools.jackson.dataformat</groupId>
 			<artifactId>jackson-dataformat-csv</artifactId>
-			<version>${jackson.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>tools.jackson.dataformat</groupId>
 			<artifactId>jackson-dataformat-yaml</artifactId>
-			<version>${jackson.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>tools.jackson.dataformat</groupId>
 			<artifactId>jackson-dataformat-xml</artifactId>
-			<version>${jackson.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>${json.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.opencsv</groupId>
-			<artifactId>opencsv</artifactId>
-			<version>${opencsv.version}</version>
-			<exclusions>
-				<exclusion>
-					<groupId>org.junit.platform</groupId>
-					<artifactId>junit-platform-launcher</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>org.simpleflatmapper</groupId>
-			<artifactId>sfm-csv</artifactId>
-			<version>${sfm-csv.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.univocity</groupId>
-			<artifactId>univocity-parsers</artifactId>
-			<version>${univocity-parsers.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.thoughtworks.xstream</groupId>
-			<artifactId>xstream</artifactId>
-			<version>${xstream.version}</version>
 		</dependency>
 
 		<!-- test dependencies -->

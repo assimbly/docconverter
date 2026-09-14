@@ -96,6 +96,27 @@ public final class DocConverterBenchmark_csvToJson_jmhTest {
             control.preTearDown();
 
             if (control.isLastIteration()) {
+                if (DocConverterBenchmark_jmhType.tearTrialMutexUpdater.compareAndSet(l_docconverterbenchmark0_G, 0, 1)) {
+                    try {
+                        if (control.isFailing) throw new FailureAssistException();
+                        if (l_docconverterbenchmark0_G.readyTrial) {
+                            l_docconverterbenchmark0_G.readyTrial = false;
+                        }
+                    } catch (Throwable t) {
+                        control.isFailing = true;
+                        throw t;
+                    } finally {
+                        DocConverterBenchmark_jmhType.tearTrialMutexUpdater.set(l_docconverterbenchmark0_G, 0);
+                    }
+                } else {
+                    long l_docconverterbenchmark0_G_backoff = 1;
+                    while (DocConverterBenchmark_jmhType.tearTrialMutexUpdater.get(l_docconverterbenchmark0_G) == 1) {
+                        TimeUnit.MILLISECONDS.sleep(l_docconverterbenchmark0_G_backoff);
+                        l_docconverterbenchmark0_G_backoff = Math.max(1024, l_docconverterbenchmark0_G_backoff * 2);
+                        if (control.isFailing) throw new FailureAssistException();
+                        if (Thread.interrupted()) throw new InterruptedException();
+                    }
+                }
                 synchronized(this.getClass()) {
                     f_docconverterbenchmark0_G = null;
                 }
@@ -167,6 +188,27 @@ public final class DocConverterBenchmark_csvToJson_jmhTest {
             control.preTearDown();
 
             if (control.isLastIteration()) {
+                if (DocConverterBenchmark_jmhType.tearTrialMutexUpdater.compareAndSet(l_docconverterbenchmark0_G, 0, 1)) {
+                    try {
+                        if (control.isFailing) throw new FailureAssistException();
+                        if (l_docconverterbenchmark0_G.readyTrial) {
+                            l_docconverterbenchmark0_G.readyTrial = false;
+                        }
+                    } catch (Throwable t) {
+                        control.isFailing = true;
+                        throw t;
+                    } finally {
+                        DocConverterBenchmark_jmhType.tearTrialMutexUpdater.set(l_docconverterbenchmark0_G, 0);
+                    }
+                } else {
+                    long l_docconverterbenchmark0_G_backoff = 1;
+                    while (DocConverterBenchmark_jmhType.tearTrialMutexUpdater.get(l_docconverterbenchmark0_G) == 1) {
+                        TimeUnit.MILLISECONDS.sleep(l_docconverterbenchmark0_G_backoff);
+                        l_docconverterbenchmark0_G_backoff = Math.max(1024, l_docconverterbenchmark0_G_backoff * 2);
+                        if (control.isFailing) throw new FailureAssistException();
+                        if (Thread.interrupted()) throw new InterruptedException();
+                    }
+                }
                 synchronized(this.getClass()) {
                     f_docconverterbenchmark0_G = null;
                 }
@@ -242,6 +284,27 @@ public final class DocConverterBenchmark_csvToJson_jmhTest {
             control.preTearDown();
 
             if (control.isLastIteration()) {
+                if (DocConverterBenchmark_jmhType.tearTrialMutexUpdater.compareAndSet(l_docconverterbenchmark0_G, 0, 1)) {
+                    try {
+                        if (control.isFailing) throw new FailureAssistException();
+                        if (l_docconverterbenchmark0_G.readyTrial) {
+                            l_docconverterbenchmark0_G.readyTrial = false;
+                        }
+                    } catch (Throwable t) {
+                        control.isFailing = true;
+                        throw t;
+                    } finally {
+                        DocConverterBenchmark_jmhType.tearTrialMutexUpdater.set(l_docconverterbenchmark0_G, 0);
+                    }
+                } else {
+                    long l_docconverterbenchmark0_G_backoff = 1;
+                    while (DocConverterBenchmark_jmhType.tearTrialMutexUpdater.get(l_docconverterbenchmark0_G) == 1) {
+                        TimeUnit.MILLISECONDS.sleep(l_docconverterbenchmark0_G_backoff);
+                        l_docconverterbenchmark0_G_backoff = Math.max(1024, l_docconverterbenchmark0_G_backoff * 2);
+                        if (control.isFailing) throw new FailureAssistException();
+                        if (Thread.interrupted()) throw new InterruptedException();
+                    }
+                }
                 synchronized(this.getClass()) {
                     f_docconverterbenchmark0_G = null;
                 }
@@ -312,6 +375,27 @@ public final class DocConverterBenchmark_csvToJson_jmhTest {
             control.preTearDown();
 
             if (control.isLastIteration()) {
+                if (DocConverterBenchmark_jmhType.tearTrialMutexUpdater.compareAndSet(l_docconverterbenchmark0_G, 0, 1)) {
+                    try {
+                        if (control.isFailing) throw new FailureAssistException();
+                        if (l_docconverterbenchmark0_G.readyTrial) {
+                            l_docconverterbenchmark0_G.readyTrial = false;
+                        }
+                    } catch (Throwable t) {
+                        control.isFailing = true;
+                        throw t;
+                    } finally {
+                        DocConverterBenchmark_jmhType.tearTrialMutexUpdater.set(l_docconverterbenchmark0_G, 0);
+                    }
+                } else {
+                    long l_docconverterbenchmark0_G_backoff = 1;
+                    while (DocConverterBenchmark_jmhType.tearTrialMutexUpdater.get(l_docconverterbenchmark0_G) == 1) {
+                        TimeUnit.MILLISECONDS.sleep(l_docconverterbenchmark0_G_backoff);
+                        l_docconverterbenchmark0_G_backoff = Math.max(1024, l_docconverterbenchmark0_G_backoff * 2);
+                        if (control.isFailing) throw new FailureAssistException();
+                        if (Thread.interrupted()) throw new InterruptedException();
+                    }
+                }
                 synchronized(this.getClass()) {
                     f_docconverterbenchmark0_G = null;
                 }
@@ -353,6 +437,7 @@ public final class DocConverterBenchmark_csvToJson_jmhTest {
                 return val;
             }
             val = new DocConverterBenchmark_jmhType();
+            val.setup();
             val.readyTrial = true;
             f_docconverterbenchmark0_G = val;
             } catch (Throwable t) {
