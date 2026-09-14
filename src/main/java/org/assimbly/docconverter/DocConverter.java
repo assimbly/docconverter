@@ -1,5 +1,32 @@
 package org.assimbly.docconverter;
 
+import org.w3c.dom.DOMConfiguration;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.ls.DOMImplementationLS;
+import org.w3c.dom.ls.LSSerializer;
+import org.xml.sax.InputSource;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.MappingIterator;
+import tools.jackson.databind.ObjectReader;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
+import tools.jackson.dataformat.csv.CsvMapper;
+import tools.jackson.dataformat.csv.CsvReadFeature;
+import tools.jackson.dataformat.xml.XmlMapper;
+import tools.jackson.dataformat.xml.XmlReadFeature;
+import tools.jackson.dataformat.yaml.YAMLMapper;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
 import java.io.*;
 import java.net.URI;
 import java.net.URL;
@@ -8,65 +35,38 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.*;
-
-import com.opencsv.CSVWriter;
-import com.opencsv.ICSVWriter;
-import org.apache.commons.io.IOUtils;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.json.XML;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParserFactory;
-import javax.xml.transform.*;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.transform.stream.StreamSource;
-
-import org.w3c.dom.DOMConfiguration;
-import org.w3c.dom.Document;
-
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.dataformat.xml.XmlMapper;
-import tools.jackson.dataformat.yaml.YAMLMapper;
-import com.univocity.parsers.csv.CsvParser;
-import com.univocity.parsers.csv.CsvParserSettings;
-import org.w3c.dom.Node;
-import org.w3c.dom.ls.DOMImplementationLS;
-import org.w3c.dom.ls.LSSerializer;
-import org.xml.sax.InputSource;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Generic utility class to convert between XML, JSON, YAML, CSV and String.
+ * Jackson tree model is the intermediate representation for format conversions.
  */
 public final class DocConverter {
+
+	private static final JsonMapper JSON_MAPPER = JsonMapper.builder().build();
+
+	private static final YAMLMapper YAML_MAPPER = YAMLMapper.builder().build();
 
 	private static final XmlMapper XML_MAPPER = XmlMapper.builder()
 			.defaultUseWrapper(false)
 			.nameForTextElement("value")
+			.enable(XmlReadFeature.WRAP_ROOT_ELEMENT_NAME)
 			.build();
 
-	private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
+	private static final CsvMapper CSV_MAPPER = CsvMapper.builder()
+			.enable(CsvReadFeature.WRAP_AS_ARRAY)
+			.enable(CsvReadFeature.SKIP_EMPTY_LINES)
+			.build();
 
-	private static final YAMLMapper YAML_MAPPER = new YAMLMapper();
-
-	private static final XmlMapper XML_MAPPER_PLAIN = new XmlMapper();
+	private static final ObjectReader CSV_ROW_READER = CSV_MAPPER.readerFor(String[].class);
 
 	private static final TransformerFactory TRANSFORMER_FACTORY = TransformerFactory.newDefaultInstance();
 
-	private static final ObjectMapper YAML_READER = new YAMLMapper();
+	private static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = createSecureDocumentBuilderFactory();
 
 	private static final int INITIAL_BUFFER_SIZE = 8192;
-
-	private static final byte[] OBJECT_NODE_OPEN  = "<ObjectNode>".getBytes(StandardCharsets.UTF_8);
-	private static final byte[] OBJECT_NODE_CLOSE = "</ObjectNode>".getBytes(StandardCharsets.UTF_8);
-	private static final byte[] XML_DECL_PREFIX   = "<?xml".getBytes(StandardCharsets.UTF_8);
-
 
 	// Private constructor – utility class
 	private DocConverter() {}
@@ -81,8 +81,10 @@ public final class DocConverter {
 	 * @return String
 	 */
 	public static String convertStreamToString(InputStream inputStream) {
-		try (Scanner scanner = new Scanner(inputStream, StandardCharsets.UTF_8).useDelimiter("\\A")) {
-			return scanner.hasNext() ? scanner.next() : "";
+		try (InputStream in = inputStream) {
+			return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
 		}
 	}
 
@@ -119,9 +121,7 @@ public final class DocConverter {
 	 * @throws Exception generic exception
 	 */
 	public static Document convertStringToDoc(String xmlString) throws Exception {
-		DocumentBuilderFactory factory = createSecureDocumentBuilderFactory();
-		DocumentBuilder builder = factory.newDocumentBuilder();
-		return builder.parse(new InputSource(new StringReader(xmlString)));
+		return newDocumentBuilder().parse(new InputSource(new StringReader(xmlString)));
 	}
 
 	// ─────────────────────────────────────────────
@@ -149,11 +149,7 @@ public final class DocConverter {
 	 * @throws Exception generic exception
 	 */
 	public static Node convertStringToNode(String string) throws Exception {
-		return DocumentBuilderFactory
-				.newDefaultInstance()
-				.newDocumentBuilder()
-				.parse(new ByteArrayInputStream(string.getBytes(StandardCharsets.UTF_8)))
-				.getDocumentElement();
+		return newDocumentBuilder().parse(new InputSource(new StringReader(string))).getDocumentElement();
 	}
 
 	// ─────────────────────────────────────────────
@@ -168,9 +164,7 @@ public final class DocConverter {
 	 */
 	public static String convertURLToString(URL url) throws Exception {
 		try (InputStream stream = url.openStream()) {
-			DocumentBuilderFactory factory = createSecureDocumentBuilderFactory();
-			Document doc = factory.newDocumentBuilder().parse(stream);
-			return convertDocToString(doc);
+			return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
 		}
 	}
 
@@ -181,12 +175,7 @@ public final class DocConverter {
 	 * @throws Exception generic exception
 	 */
 	public static String convertUriToString(URI uri) throws Exception {
-		URL url = uri.toURL();
-		try (InputStream stream = url.openStream()) {
-			DocumentBuilderFactory factory = createSecureDocumentBuilderFactory();
-			Document doc = factory.newDocumentBuilder().parse(stream);
-			return convertDocToString(doc);
-		}
+		return convertURLToString(uri.toURL());
 	}
 
 	/**
@@ -198,8 +187,7 @@ public final class DocConverter {
 	public static Document convertUriToDoc(URI uri) throws Exception {
 		URL url = uri.toURL();
 		try (InputStream stream = url.openStream()) {
-			DocumentBuilderFactory factory = createSecureDocumentBuilderFactory();
-			return factory.newDocumentBuilder().parse(stream);
+			return newDocumentBuilder().parse(stream);
 		}
 	}
 
@@ -315,7 +303,9 @@ public final class DocConverter {
 	 * @throws Exception generic exception
 	 */
 	public static String convertReaderToString(Reader reader) throws Exception {
-		return IOUtils.toString(reader);
+		StringWriter writer = new StringWriter(INITIAL_BUFFER_SIZE);
+		reader.transferTo(writer);
+		return writer.toString();
 	}
 
 	// ─────────────────────────────────────────────
@@ -351,45 +341,10 @@ public final class DocConverter {
 	 * @throws Exception generic exception
 	 */
 	public static String convertXmlToJson(String xml) throws Exception {
-		byte[] xmlBytes = xml.getBytes(StandardCharsets.UTF_8);
-		int start = 0;
-
-		// Skip XML declaration at byte level — no regex, no String copy
-		if (startsWith(xmlBytes)) {
-			start = indexOf(xmlBytes) + 1;
-			while (start < xmlBytes.length && xmlBytes[start] <= ' ') start++; // trim
+		if (xml == null || xml.isEmpty()) {
+			return "{}";
 		}
-
-		boolean needsWrapper = !startsWith(xmlBytes, start, OBJECT_NODE_OPEN);
-
-		// Single pre-sized buffer — no realloc
-		int capacity = (needsWrapper ? OBJECT_NODE_OPEN.length + OBJECT_NODE_CLOSE.length : 0)
-				+ (xmlBytes.length - start);
-		ByteArrayOutputStream bos = new ByteArrayOutputStream(capacity);
-
-		if (needsWrapper) bos.write(OBJECT_NODE_OPEN);
-		bos.write(xmlBytes, start, xmlBytes.length - start);
-		if (needsWrapper) bos.write(OBJECT_NODE_CLOSE);
-
-		JsonNode node = XML_MAPPER.readTree(bos.toByteArray());
-		return JSON_MAPPER.writeValueAsString(node);
-	}
-
-	private static boolean startsWith(byte[] data) {
-		return startsWith(data, 0, DocConverter.XML_DECL_PREFIX);
-	}
-
-	private static boolean startsWith(byte[] data, int offset, byte[] prefix) {
-		if (data.length - offset < prefix.length) return false;
-		for (int i = 0; i < prefix.length; i++)
-			if (data[offset + i] != prefix[i]) return false;
-		return true;
-	}
-
-	private static int indexOf(byte[] data) {
-		for (int i = 0; i < data.length; i++)
-			if (data[i] == (byte) 62) return i;
-		return -1;
+		return JSON_MAPPER.writeValueAsString(XML_MAPPER.readTree(xml));
 	}
 
 	/**
@@ -398,9 +353,7 @@ public final class DocConverter {
 	 * @return yaml as String
 	 */
 	public static String convertXmlToYaml(String xml) {
-		JSONObject xmlJSONObj = XML.toJSONObject(xml);
-		JsonNode jsonNode = JSON_MAPPER.readTree(xmlJSONObj.toString());
-		return YAML_MAPPER.writeValueAsString(jsonNode);
+		return YAML_MAPPER.writeValueAsString(XML_MAPPER.readTree(xml));
 	}
 
 	/**
@@ -413,41 +366,7 @@ public final class DocConverter {
 		if (xml == null || xml.isEmpty()) {
 			return "";
 		}
-
-		StringWriter stringWriter = new StringWriter();
-
-		try (CSVWriter csvWriter = new CSVWriter(stringWriter,
-				ICSVWriter.DEFAULT_SEPARATOR,
-				ICSVWriter.DEFAULT_QUOTE_CHARACTER,
-				ICSVWriter.DEFAULT_ESCAPE_CHARACTER,
-				ICSVWriter.DEFAULT_LINE_END)) {
-
-			JsonNode rootNode = XML_MAPPER_PLAIN.readTree(xml.getBytes());
-			JsonNode rows = rootNode.get("row");
-
-			if (rows != null) {
-				if (rows.isArray()) {
-					for (JsonNode row : rows) {
-						writeRow(csvWriter, row);
-					}
-				} else {
-					writeRow(csvWriter, rows);
-				}
-			}
-		}
-
-		return stringWriter.toString().trim();
-	}
-
-	private static void writeRow(CSVWriter csvWriter, JsonNode row) {
-		JsonNode items = row.get("item");
-		if (items != null && items.isArray()) {
-			List<String> data = new ArrayList<>();
-			for (JsonNode item : items) {
-				data.add(item.asString());
-			}
-			csvWriter.writeNext(data.toArray(new String[0]), false);
-		}
+		return treeToCsv(XML_MAPPER.readTree(xml));
 	}
 
 	/**
@@ -456,35 +375,10 @@ public final class DocConverter {
 	 * @return xml as String
 	 */
 	public static String convertJsonToXml(String json) {
-		// Pre-check for empty or null input
-		if (json == null || json.trim().isEmpty()) {
+		if (json == null || json.isBlank()) {
 			return "";
 		}
-
-		// Use String.charAt(0) for faster prefix check
-		boolean isArray = json.charAt(0) == '[';
-
-		Object jsonObject;
-		if (isArray) {
-			jsonObject = new JSONArray(json).toList();
-		} else {
-			jsonObject = JSON_MAPPER.readTree(json);
-		}
-
-		// Write XML in one go, avoiding intermediate String manipulation
-		String xml = XML_MAPPER_PLAIN.writeValueAsString(jsonObject);
-		xml = xml.replace("&#xd;", "");
-
-		// Only process if not an array and contains ObjectNode
-		if (!isArray && xml.contains("<ObjectNode>")) {
-			int start = xml.indexOf("<ObjectNode>") + "<ObjectNode>".length();
-			int end = xml.indexOf("</ObjectNode>");
-			if (start > 0 && end > start) {
-				xml = xml.substring(start, end);
-			}
-		}
-
-		return xml;
+		return treeToXml(JSON_MAPPER.readTree(json));
 	}
 
 	/**
@@ -493,8 +387,7 @@ public final class DocConverter {
 	 * @return yaml as String
 	 */
 	public static String convertJsonToYaml(String json) {
-		JsonNode jsonNodeTree = JSON_MAPPER.readTree(json);
-		return YAML_MAPPER.writeValueAsString(jsonNodeTree);
+		return YAML_MAPPER.writeValueAsString(JSON_MAPPER.readTree(json));
 	}
 
 	/**
@@ -504,8 +397,10 @@ public final class DocConverter {
 	 * @throws Exception generic exception
 	 */
 	public static String convertJsonToCsv(String json) throws Exception {
-		String xml = convertJsonToXml(json);
-		return convertXmlToCsv(xml);
+		if (json == null || json.isBlank()) {
+			return "";
+		}
+		return treeToCsv(JSON_MAPPER.readTree(json));
 	}
 
 	/**
@@ -514,17 +409,14 @@ public final class DocConverter {
 	 * @return xml as String
 	 */
 	public static String convertCsvToXml(String csv) {
-		CsvParserSettings settings = new CsvParserSettings();
-		settings.detectFormatAutomatically();
-		CsvParser parser = new CsvParser(settings);
-
 		StringBuilder sb = new StringBuilder(INITIAL_BUFFER_SIZE);
 		sb.append("<?xml version='1.0' encoding='UTF-8'?><rows>");
-
-		try(StringReader stringReader = new StringReader(csv)) {
-			parser.beginParsing(stringReader);
-			String[] row;
-			while ((row = parser.parseNext()) != null) {
+		try (MappingIterator<String[]> rows = CSV_ROW_READER.readValues(nullToEmpty(csv))) {
+			while (rows.hasNextValue()) {
+				String[] row = rows.nextValue();
+				if (isBlankRow(row)) {
+					continue;
+				}
 				sb.append("<row>");
 				for (String col : row) {
 					sb.append("<item>");
@@ -533,10 +425,7 @@ public final class DocConverter {
 				}
 				sb.append("</row>");
 			}
-		} finally {
-			parser.stopParsing();
 		}
-
 		sb.append("</rows>");
 		return sb.toString();
 	}
@@ -548,8 +437,7 @@ public final class DocConverter {
 	 * @throws Exception generic exception
 	 */
 	public static String convertCsvToJson(String csv) throws Exception {
-		String xml = convertCsvToXml(csv);
-		return convertXmlToJson(xml);
+		return JSON_MAPPER.writeValueAsString(csvToTree(csv));
 	}
 
 	/**
@@ -558,8 +446,7 @@ public final class DocConverter {
 	 * @return yaml as String
 	 */
 	public static String convertCsvToYaml(String csv) {
-		String xml = convertCsvToXml(csv);
-		return convertXmlToYaml(xml);
+		return YAML_MAPPER.writeValueAsString(csvToTree(csv));
 	}
 
 	/**
@@ -568,8 +455,7 @@ public final class DocConverter {
 	 * @return xml as String
 	 */
 	public static String convertYamlToXml(String yaml) {
-		String json = convertYamlToJson(yaml);
-		return convertJsonToXml(json);
+		return treeToXml(YAML_MAPPER.readTree(yaml));
 	}
 
 	/**
@@ -578,8 +464,7 @@ public final class DocConverter {
 	 * @return json as String
 	 */
 	public static String convertYamlToJson(String yaml) {
-		Object obj = YAML_READER.readValue(yaml, Object.class);
-		return JSON_MAPPER.writeValueAsString(obj);
+		return JSON_MAPPER.writeValueAsString(YAML_MAPPER.readTree(yaml));
 	}
 
 	/**
@@ -589,8 +474,7 @@ public final class DocConverter {
 	 * @throws Exception generic exception
 	 */
 	public static String convertYamlToCsv(String yaml) throws Exception {
-		String xml = convertYamlToXml(yaml);
-		return convertXmlToCsv(xml);
+		return treeToCsv(YAML_MAPPER.readTree(yaml));
 	}
 
 	// ─────────────────────────────────────────────
@@ -607,10 +491,7 @@ public final class DocConverter {
 		String t = xml.stripLeading();
 		if (!t.startsWith("<")) return false;
 		try {
-			SAXParserFactory.newDefaultInstance()
-					.newSAXParser()
-					.getXMLReader()
-					.parse(new InputSource(new StringReader(xml)));
+			XML_MAPPER.readTree(xml);
 			return true;
 		} catch (Exception ex) {
 			return false;
@@ -652,26 +533,160 @@ public final class DocConverter {
 	// ─────────────────────────────────────────────
 	// Internal helpers
 	// ─────────────────────────────────────────────
-	private static DocumentBuilderFactory createSecureDocumentBuilderFactory() {
 
+	private static String treeToXml(JsonNode node) {
+		if (node == null || node.isNull() || node.isMissingNode()) {
+			return "";
+		}
+		if (node.isArray()) {
+			ObjectNode wrapper = JSON_MAPPER.createObjectNode();
+			ObjectNode arrayList = JSON_MAPPER.createObjectNode();
+			arrayList.set("item", node);
+			wrapper.set("ArrayList", arrayList);
+			return XML_MAPPER.writeValueAsString(wrapper);
+		}
+		return XML_MAPPER.writeValueAsString(node);
+	}
+
+	private static JsonNode csvToTree(String csv) {
+		ArrayNode rowArray = JSON_MAPPER.createArrayNode();
+		try (MappingIterator<String[]> rows = CSV_ROW_READER.readValues(nullToEmpty(csv))) {
+			while (rows.hasNextValue()) {
+				String[] row = rows.nextValue();
+				if (isBlankRow(row)) {
+					continue;
+				}
+				ObjectNode rowNode = JSON_MAPPER.createObjectNode();
+				ArrayNode items = JSON_MAPPER.createArrayNode();
+				for (String col : row) {
+					items.add(col != null ? col : "");
+				}
+				rowNode.set("item", items);
+				rowArray.add(rowNode);
+			}
+		}
+		ObjectNode rowsNode = JSON_MAPPER.createObjectNode();
+		rowsNode.set("row", rowArray);
+		ObjectNode root = JSON_MAPPER.createObjectNode();
+		root.set("rows", rowsNode);
+		return root;
+	}
+
+	private static String treeToCsv(JsonNode tree) {
+		JsonNode rows = extractCsvRows(tree);
+		if (rows == null || rows.isMissingNode() || rows.isNull()) {
+			return "";
+		}
+
+		StringBuilder sb = new StringBuilder(INITIAL_BUFFER_SIZE);
+		if (rows.isArray()) {
+			for (JsonNode row : rows) {
+				appendCsvRow(sb, row);
+			}
+		} else {
+			appendCsvRow(sb, rows);
+		}
+
+		int length = sb.length();
+		while (length > 0 && (sb.charAt(length - 1) == '\n' || sb.charAt(length - 1) == '\r')) {
+			length--;
+		}
+		sb.setLength(length);
+		return sb.toString();
+	}
+
+	private static JsonNode extractCsvRows(JsonNode tree) {
+		if (tree == null) {
+			return null;
+		}
+		JsonNode rowsWrapper = tree.get("rows");
+		if (rowsWrapper != null && !rowsWrapper.isNull()) {
+			JsonNode row = rowsWrapper.get("row");
+			if (row != null) {
+				return row;
+			}
+		}
+		return tree.get("row");
+	}
+
+	private static void appendCsvRow(StringBuilder sb, JsonNode row) {
+		JsonNode items = row.get("item");
+		if (items == null || items.isNull()) {
+			return;
+		}
+		if (items.isArray()) {
+			for (int i = 0, size = items.size(); i < size; i++) {
+				if (i > 0) {
+					sb.append(',');
+				}
+				appendCsvField(sb, items.get(i).asString());
+			}
+		} else {
+			appendCsvField(sb, items.asString());
+		}
+		sb.append('\n');
+	}
+
+	private static void appendCsvField(StringBuilder sb, String value) {
+		if (value == null) {
+			value = "";
+		}
+		boolean quote = false;
+		for (int i = 0, len = value.length(); i < len; i++) {
+			char c = value.charAt(i);
+			if (c == ',' || c == '"' || c == '\n' || c == '\r') {
+				quote = true;
+				break;
+			}
+		}
+		if (!quote) {
+			sb.append(value);
+			return;
+		}
+		sb.append('"');
+		for (int i = 0, len = value.length(); i < len; i++) {
+			char c = value.charAt(i);
+			if (c == '"') {
+				sb.append('"');
+			}
+			sb.append(c);
+		}
+		sb.append('"');
+	}
+
+	private static boolean isBlankRow(String[] row) {
+		if (row == null || row.length == 0) {
+			return true;
+		}
+		for (String col : row) {
+			if (col != null && !col.isBlank()) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private static String nullToEmpty(String value) {
+		return value == null ? "" : value;
+	}
+
+	private static DocumentBuilder newDocumentBuilder() throws ParserConfigurationException {
+		return DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
+	}
+
+	private static DocumentBuilderFactory createSecureDocumentBuilderFactory() {
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 
 		try {
-			// Primary defense: block all DOCTYPE declarations entirely
 			factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-			// Belt-and-suspenders: disable external general and parameter entities individually
 			factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
 			factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
-			// Disable external DTD loading
 			factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
 		} catch (ParserConfigurationException e) {
-			// Fallback for non-Xerces parsers that don't support the above features
 			factory.setValidating(false);
 			factory.setNamespaceAware(true);
 		}
-		// Disable XInclude processing
 		factory.setXIncludeAware(false);
-		// Disable entity expansion
 		factory.setExpandEntityReferences(false);
 		return factory;
 	}

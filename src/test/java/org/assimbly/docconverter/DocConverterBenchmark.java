@@ -1,7 +1,6 @@
 package org.assimbly.docconverter;
 
 import org.openjdk.jmh.annotations.*;
-
 import java.util.concurrent.TimeUnit;
 
 
@@ -17,24 +16,34 @@ public class DocConverterBenchmark {
 
     Compile first:
 
-    mvn clean test-compile -Pbenchmark
+    mvn clean test-compile -Pbenchmark2
 
     Run the benchmark as:
 
-    mvn test -Pbenchmark
+    mvn test -Pbenchmark2
 
     Run a specific benchmark:
 
-    mvn test -Pbenchmark -Dbenchmark=jsonToXml
+    mvn test -Pbenchmark2 -Dbenchmark=jsonToXml
 
     */
 
-    // reuse the same fixtures as your test class
     private static final String SIMPLE_XML = "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
             "<headers><Content-Type type=\"header\" language=\"constant\">text/xml</Content-Type></headers>";
     private static final String SIMPLE_JSON = "{\"headers\":{\"Content-Type\":{\"type\":\"header\",\"language\":\"constant\",\"content\":\"text/xml\"}}}";
     private static final String SIMPLE_YAML = "---\nheaders:\n  Content-Type:\n    language: constant\n    type: header\n    content: text/xml\n";
     private static final String SIMPLE_CSV  = "1,FAB0d41d5b5d22c,Ferrell LLC\n2,6A7EdDEA9FaDC52,Mckinney\n";
+
+    private String csvAsXml;
+    private String csvAsJson;
+    private String csvAsYaml;
+
+    @Setup
+    public void setup() throws Exception {
+        csvAsXml = DocConverter.convertCsvToXml(SIMPLE_CSV);
+        csvAsJson = DocConverter.convertCsvToJson(SIMPLE_CSV);
+        csvAsYaml = DocConverter.convertCsvToYaml(SIMPLE_CSV);
+    }
 
     @Benchmark
     public String xmlToJson() throws Exception {
@@ -47,13 +56,23 @@ public class DocConverterBenchmark {
     }
 
     @Benchmark
-    public String jsonToXml(){
+    public String xmlToCsv() throws Exception {
+        return DocConverter.convertXmlToCsv(csvAsXml);
+    }
+
+    @Benchmark
+    public String jsonToXml() {
         return DocConverter.convertJsonToXml(SIMPLE_JSON);
     }
 
     @Benchmark
     public String jsonToYaml() {
         return DocConverter.convertJsonToYaml(SIMPLE_JSON);
+    }
+
+    @Benchmark
+    public String jsonToCsv() throws Exception {
+        return DocConverter.convertJsonToCsv(csvAsJson);
     }
 
     @Benchmark
@@ -67,6 +86,11 @@ public class DocConverterBenchmark {
     }
 
     @Benchmark
+    public String yamlToCsv() throws Exception {
+        return DocConverter.convertYamlToCsv(csvAsYaml);
+    }
+
+    @Benchmark
     public String csvToXml() {
         return DocConverter.convertCsvToXml(SIMPLE_CSV);
     }
@@ -76,8 +100,12 @@ public class DocConverterBenchmark {
         return DocConverter.convertCsvToJson(SIMPLE_CSV);
     }
 
+    @Benchmark
+    public String csvToYaml() {
+        return DocConverter.convertCsvToYaml(SIMPLE_CSV);
+    }
+
     public static void main(String[] args) throws Exception {
-        // Filter out nulls if any exist in the array
         java.util.List<String> sanitizedArgs = java.util.Arrays.stream(args)
                 .filter(arg -> arg != null && !arg.isEmpty() && !arg.equals("all"))
                 .toList();
