@@ -1,93 +1,126 @@
 # DocConverter
 
-DocConverter is a Java library to convert between XML, JSON, CSV and YAML documents. It's a utility class that can be called in a static way.
+DocConverter is a Java library to convert between XML, JSON, CSV and YAML documents.
 
-It takes a string as input in one data format and returns a string into another data format:
+Requires **JDK 21** or later. Call it as a static utility:
 
-	String json = DocConverter.convertXmlToJson(String xml) 
-	String yaml = DocConverter.convertXmlToYaml(String xml)
-	String csv = DocConverter.convertXmlToCsv(String xml)
-	
-	String xml = DocConverter.convertJsonToXml(String json)
-	String yaml = DocConverter.convertJsonToYaml(String json)
-	String csv = DocConverter.convertJsonToCsv(String json)
-	
-	String xml = DocConverter.convertYamlToXml(String yaml)
-	String json = DocConverter.convertYamlToJson(String yaml)
-	String csv = DocConverter.convertYamlToCsv(String yaml)
+```java
+String json = DocConverter.xmlToJson(xml);
+String yaml = DocConverter.xmlToYaml(xml);
+String csv  = DocConverter.xmlToCsv(xml);
 
-	String xml = DocConverter.convertCsvToXml(String csv)
-	String json = DocConverter.convertCsvToJson(String csv)
-	String yaml = DocConverter.convertCsvToYaml(String csv)
+String xml  = DocConverter.jsonToXml(json);
+String yaml = DocConverter.jsonToYaml(json);
+String csv  = DocConverter.jsonToCsv(json);
 
-If you have don't have a string as input you can convert several objects first to a string:
+String xml  = DocConverter.yamlToXml(yaml);
+String json = DocConverter.yamlToJson(yaml);
+String csv  = DocConverter.yamlToCsv(yaml);
 
-	DocConverter.convertDocToString(Document doc)
-    DocConverter.convertNodeToString(Node node)
-	DocConverter.convertFileToString(String path)
-	DocConverter.convertListToString(List<String> list) 
-	DocConverter.convertStreamToString(InputStream inputsstream)
-	DocConverter.convertUrlToString(URL url)
-	DocConverter.convertUriToString(URI uri)		 
-	
-For example changing a file from XML to JSON:
-		
-	String xml = DocConverter.convertFileToString("C:/example.xml");
-	String json = DocConverter.convertXmlToJson(xml);
-	DocConverter.convertStringToFile("C:/example.json",json);
-		
+String xml  = DocConverter.csvToXml(csv);
+String json = DocConverter.csvToJson(csv);
+String yaml = DocConverter.csvToYaml(csv);
+```
+
+Null, empty, and whitespace-only input are treated as an empty document. Conversion then returns the canonical empty representation of the **target** format: `{}` for JSON and YAML, `<root/>` for XML, and an empty string for CSV. Valid documents that happen to contain an empty structure (for example JSON `{}` or `[]`) are converted normally.
+
+Conversion failures throw unchecked `DocConversionException`, with the original cause preserved.
+
+### StringConverter
+
+`StringConverter` is an additional utility that handles conversions between strings and common Java types (files, streams, DOM, and so on).
+
+If the input is not already a string, convert it first with `StringConverter`:
+
+```java
+StringConverter.docToString(document);
+StringConverter.nodeToString(node);
+StringConverter.fileToString(path);
+StringConverter.listToString(list);
+StringConverter.streamToString(inputStream);
+StringConverter.urlToString(url);
+StringConverter.uriToString(uri);
+```
+
+## Examples
+
+JSON string to XML string:
+
+```java
+String json = "{\"rows\":{\"row\":[{\"item\":[\"1\",\"FAB0d41d5b5d22c\",\"Ferrell LLC\",\"https://price.net/\",\"Papua New Guinea\",\"Horizontal empowering knowledgebase\",\"1990\",\"Plastics\",\"3498\"]},{\"item\":[\"2\",\"6A7EdDEA9FaDC52\",\"Mckinney, Riley and Day\",\"https://www.hall-buchanan.info/\",\"Finland\",\"User-centric system-worthy leverage\",\"2015\",\"Glass / Ceramics / Concrete\",\"4952\"]}]}}";
+String xml = DocConverter.jsonToXml(json);
+```
+
+XML file to JSON file:
+
+```java
+String xml = StringConverter.fileToString("C:/example.xml");
+String json = DocConverter.xmlToJson(xml);
+StringConverter.stringToFile("C:/example.json", json);
+```
+
+
+
+
 ## CSV
 
-Conversion to csv expects input in the following flat format:
+Conversion to CSV expects a flat document in this form:
 
-	<rows>
-		<row>
-			<item1>x</item1>
-			<item2>y</item2>
-		</row>		
-		<row>
-			<item1>z</item1>
-			<item2>b</item2>
-		</row>		
-	</rows>
+```xml
+<rows>
+    <row>
+        <item>x</item>
+        <item>y</item>
+    </row>
+    <row>
+        <item>z</item>
+        <item>b</item>
+    </row>
+</rows>
+```
 
-		
-## Get code
+## Get the library
 
-From version 1.4.0 DocConverter is build for JDK11 and later.
-From version 2.0.0 DocConverter is build for JDK21 and later. This version also uses Jackson 3.
-From version 3.0.0 DocConverter only uses Jackson 3 as dependency.
+- From 1.4.0 DocConverter is built for JDK 11 and later.
+- From 2.0.0 DocConverter is built for JDK 21 and later. This version also uses Jackson 3.
+- From 3.0.0 DocConverter only uses Jackson 3 as a dependency, StringConverter in a specific util class and update method names (drops the convert).
 
-For maven:
+Maven:
 
-	<dependency>
-	  <groupId>io.github.assimbly</groupId>
-	  <artifactId>docconverter</artifactId>
-	  <version>3.0.0</version>
-	</dependency>	
-	
-For gradle:
+```xml
+<dependency>
+  <groupId>io.github.assimbly</groupId>
+  <artifactId>docconverter</artifactId>
+  <version>3.0.1</version>
+</dependency>
+```
 
-	compile 'io.github.assimbly:docconverter:3.0.0'	
+Gradle:
 
-## Limits	
+```groovy
+implementation 'io.github.assimbly:docconverter:3.0.1'
+```
 
-DocConverter is created to make doc conversion of different data formats as easy as possible. 
-It's a generic converter with a simple string representation as input/output. 
+Build from source:
 
-If you need:
+```bash
+mvn test
+```
 
-* Options
-* Type check or validation
-* Flexibility
-* Performance
+## Contributing
 
-Please check the following resources:
-	
-* https://github.com/FasterXML	
-* http://json.org/
-* http://opencsv.sourceforge.net/
-* https://www.univocity.com/pages/univocity_parsers_tutorial.html
-* http://x-stream.github.io/
-* http://daffodil.incubator.apache.org/
-* https://github.com/stleary/JSON-java
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and pull-request guidelines, [SECURITY.md](SECURITY.md) to report vulnerabilities, and [CHANGELOG.md](CHANGELOG.md) for release history.
+
+## Limits
+
+DocConverter is meant to make conversion between data formats as easy as possible. It is a generic converter with a simple string representation as input and output.
+
+If you need options, type checks, validation, more flexibility, or more performance, see:
+
+- https://github.com/FasterXML
+- https://www.json.org/
+- http://opencsv.sourceforge.net/
+- https://www.univocity.com/pages/univocity_parsers_tutorial.html
+- https://x-stream.github.io/
+- https://daffodil.apache.org/
+- https://github.com/stleary/JSON-java

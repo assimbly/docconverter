@@ -4,12 +4,12 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<name>docconverter</name>
-	<description>library to convert between XML, JSON and YAML documents</description>
-	<url>https://github.com/assimbly</url>
+	<description>library to convert between XML, JSON, CSV and YAML documents</description>
+	<url>https://github.com/assimbly/docconverter</url>
 
 	<groupId>io.github.assimbly</groupId>
 	<artifactId>docconverter</artifactId>
-	<version>3.0.0</version>
+	<version>3.0.1</version>
 
 	<packaging>jar</packaging>
 
@@ -172,22 +172,9 @@
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.14.0</version>
-				<configuration>
-					<annotationProcessorPaths>
-						<path>
-							<groupId>org.openjdk.jmh</groupId>
-							<artifactId>jmh-generator-annprocess</artifactId>
-							<version>${jmh.version}</version>
-						</path>
-					</annotationProcessorPaths>
-				</configuration>
-
 				<executions>
 					<execution>
-						<id>process-test-annotations</id>
-						<goals>
-							<goal>testCompile</goal>
-						</goals>
+						<id>default-testCompile</id>
 						<configuration>
 							<annotationProcessorPaths>
 								<path>
@@ -199,6 +186,18 @@
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>3.4.2</version>
+				<configuration>
+					<archive>
+						<manifestEntries>
+							<Automatic-Module-Name>org.assimbly.docconverter</Automatic-Module-Name>
+						</manifestEntries>
+					</archive>
+				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
