@@ -1,11 +1,5 @@
 package org.assimbly.docconverter;
 
-import org.w3c.dom.DOMConfiguration;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.ls.DOMImplementationLS;
-import org.w3c.dom.ls.LSSerializer;
-import org.xml.sax.InputSource;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.MappingIterator;
 import tools.jackson.databind.ObjectReader;
@@ -18,39 +12,15 @@ import tools.jackson.dataformat.xml.XmlMapper;
 import tools.jackson.dataformat.xml.XmlReadFeature;
 import tools.jackson.dataformat.yaml.YAMLMapper;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.Source;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.transform.stream.StreamSource;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.io.UncheckedIOException;
-import java.net.URI;
-import java.net.URL;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 /**
- * Static utility for converting between XML, JSON, YAML, CSV and common Java types.
+ * Static utility for converting between XML, JSON, YAML and CSV.
  * <p>
  * Format conversions use Jackson's tree model as the intermediate representation.
  * This class is not instantiable.
+ * <p>
+ * Null, empty, and whitespace-only input are treated as an empty document
+ * and convert to the canonical empty representation of the target format:
+ * {@code {}} for JSON and YAML, {@code <root/>} for XML, and {@code ""} for CSV.
  */
 public final class DocConverter {
 
@@ -71,428 +41,287 @@ public final class DocConverter {
 
 	private static final ObjectReader CSV_ROW_READER = CSV_MAPPER.readerFor(String[].class);
 
-	private static final TransformerFactory TRANSFORMER_FACTORY = TransformerFactory.newDefaultInstance();
-
-	private static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = createSecureDocumentBuilderFactory();
+	private static final String EMPTY_JSON = "{}";
+	private static final String EMPTY_YAML = "{}";
+	private static final String EMPTY_XML = "<root/>";
+	private static final String EMPTY_CSV = "";
 
 	private static final int INITIAL_BUFFER_SIZE = 8192;
 
-	// Private constructor – utility class
 	private DocConverter() {}
-
-	// ─────────────────────────────────────────────
-	// Stream / String
-	// ─────────────────────────────────────────────
-
-	/**
-	 * Reads an InputStream into a UTF-8 String. The caller remains responsible for closing the stream.
-	 * @param inputStream InputStream
-	 * @return String
-	 */
-	public static String convertStreamToString(InputStream inputStream) {
-		try {
-			return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-		} catch (IOException e) {
-			throw new UncheckedIOException(e);
-		}
-	}
-
-	/**
-	 * Converts a String to a Stream
-	 * @param string String
-	 * @return InputStream
-	 */
-	public static InputStream convertStringToStream(String string) {
-		return new ByteArrayInputStream(string.getBytes(StandardCharsets.UTF_8));
-	}
-
-	// ─────────────────────────────────────────────
-	// Document / String
-	// ─────────────────────────────────────────────
-
-	/**
-	 * Converts an org.w3c.dom.Document (XML) to a String
-	 * @param document org.w3c.dom.Document XML document
-	 * @return String
-	 * @throws Exception if the document cannot be serialized
-	 */
-	public static String convertDocToString(Document document) throws Exception {
-		Transformer transformer = TRANSFORMER_FACTORY.newTransformer();
-		StringWriter stringWriter = new StringWriter();
-		transformer.transform(new DOMSource(document), new StreamResult(stringWriter));
-		return stringWriter.toString();
-	}
-
-	/**
-	 * Converts a String to an org.w3c.dom.Document (XML)
-	 * @param xmlString String
-	 * @return Document org.w3c.dom.Document XML document
-	 * @throws Exception if the string is not well-formed XML
-	 */
-	public static Document convertStringToDoc(String xmlString) throws Exception {
-		return newDocumentBuilder().parse(new InputSource(new StringReader(xmlString)));
-	}
-
-	// ─────────────────────────────────────────────
-	// Node / String
-	// ─────────────────────────────────────────────
-
-	/**
-	 * Converts an org.w3c.dom.Node to a String
-	 * @param node Node org.w3c.dom.Node
-	 * @return String
-	 */
-	public static String convertNodeToString(Node node) {
-		DOMImplementationLS domImplementation = (DOMImplementationLS)
-				node.getOwnerDocument().getImplementation().getFeature("LS", "3.0");
-		LSSerializer serializer = domImplementation.createLSSerializer();
-		DOMConfiguration config = serializer.getDomConfig();
-		config.setParameter("xml-declaration", Boolean.FALSE);
-		return serializer.writeToString(node);
-	}
-
-	/**
-	 * Converts a String to an org.w3c.dom.Node
-	 * @param string XML node as string, e.g. {@code <node>value</node>}
-	 * @return Node org.w3c.dom.Node
-	 * @throws Exception if the string is not well-formed XML
-	 */
-	public static Node convertStringToNode(String string) throws Exception {
-		return newDocumentBuilder().parse(new InputSource(new StringReader(string))).getDocumentElement();
-	}
-
-	// ─────────────────────────────────────────────
-	// URL / URI / String
-	// ─────────────────────────────────────────────
-
-	/**
-	 * Converts a URL to a String
-	 * @param url java.net.URL
-	 * @return String
-	 * @throws IOException if the URL cannot be read
-	 */
-	public static String convertURLToString(URL url) throws IOException {
-		try (InputStream stream = url.openStream()) {
-			return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
-		}
-	}
-
-	/**
-	 * Converts a URI to a String
-	 * @param uri java.net.URI
-	 * @return String
-	 * @throws IOException if the URI cannot be read
-	 */
-	public static String convertUriToString(URI uri) throws IOException {
-		return convertURLToString(uri.toURL());
-	}
-
-	/**
-	 * Converts a URI to an org.w3c.dom.Document (XML)
-	 * @param uri java.net.URI
-	 * @return Document org.w3c.dom.Document XML document
-	 * @throws Exception if the URI cannot be read or is not well-formed XML
-	 */
-	public static Document convertUriToDoc(URI uri) throws Exception {
-		URL url = uri.toURL();
-		try (InputStream stream = url.openStream()) {
-			return newDocumentBuilder().parse(stream);
-		}
-	}
-
-	// ─────────────────────────────────────────────
-	// File / String
-	// ─────────────────────────────────────────────
-
-	/**
-	 * Converts a file to String (UTF-8)
-	 * @param path path as String
-	 * @return String
-	 * @throws IOException if the file cannot be read
-	 */
-	public static String convertFileToString(String path) throws IOException {
-		return Files.readString(Paths.get(path));
-	}
-
-	/**
-	 * Converts a File to String with explicit encoding
-	 * @param path path as String
-	 * @param encoding Charset (defaults to UTF-8 when null)
-	 * @return String
-	 * @throws IOException if the file cannot be read
-	 */
-	public static String convertFileToString(String path, Charset encoding) throws IOException {
-		Charset charset = encoding != null ? encoding : StandardCharsets.UTF_8;
-		return Files.readString(Paths.get(path), charset);
-	}
-
-	/**
-	 * Converts a String to a File
-	 * @param path path as String
-	 * @param content content as String
-	 * @throws IOException if the file cannot be written
-	 */
-	public static void convertStringToFile(String path, String content) throws IOException {
-		Files.writeString(Paths.get(path), content,
-				StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
-	}
-
-	/**
-	 * Converts a File to a URI
-	 * @param file File object
-	 * @return URI
-	 */
-	public static URI convertFileToURI(File file) {
-		return file.toURI();
-	}
-
-	/**
-	 * Converts a File to a URL
-	 * @param file File object
-	 * @return URL
-	 * @throws IOException if the file cannot be converted to a URL
-	 */
-	public static URL convertFileToURL(File file) throws IOException {
-		return file.toURI().toURL();
-	}
-
-	// ─────────────────────────────────────────────
-	// Source / String
-	// ─────────────────────────────────────────────
-
-	/**
-	 * Converts a String to a Source
-	 * @param string String object
-	 * @return Source
-	 */
-	public static Source convertStringToSource(String string) {
-		return new StreamSource(new StringReader(string));
-	}
-
-	// ─────────────────────────────────────────────
-	// List / String
-	// ─────────────────────────────────────────────
-
-	/**
-	 * Converts a List to a comma-separated String
-	 * @param list List of strings
-	 * @return String
-	 */
-	public static String convertListToString(List<String> list) {
-		return String.join(",", list);
-	}
-
-	/**
-	 * Converts a comma-separated String to a List
-	 * @param commaSeparatedString comma-separated String
-	 * @return List
-	 */
-	public static List<String> convertStringToList(String commaSeparatedString) {
-		return new ArrayList<>(Arrays.asList(commaSeparatedString.split(",")));
-	}
-
-	// ─────────────────────────────────────────────
-	// Reader / String
-	// ─────────────────────────────────────────────
-
-	/**
-	 * Converts a String to a Reader
-	 * @param string String object
-	 * @return Reader
-	 */
-	public static Reader convertStringToReader(String string) {
-		return new StringReader(string);
-	}
-
-	/**
-	 * Converts a Reader to a String
-	 * @param reader java.io.Reader
-	 * @return String
-	 * @throws IOException if the reader cannot be read
-	 */
-	public static String convertReaderToString(Reader reader) throws IOException {
-		StringWriter writer = new StringWriter(INITIAL_BUFFER_SIZE);
-		reader.transferTo(writer);
-		return writer.toString();
-	}
-
-	// ─────────────────────────────────────────────
-	// Object conversions
-	// ─────────────────────────────────────────────
-
-	/**
-	 * Converts an Object to a String
-	 * @param object Generic Object
-	 * @return String
-	 */
-	public static String convertObjectToString(Object object) {
-		return String.valueOf(object);
-	}
-
-	/**
-	 * Converts an Object to a JSON String
-	 * @param object Generic Object
-	 * @return String
-	 */
-	public static String convertObjectToJSONString(Object object) {
-		return JSON_MAPPER.writeValueAsString(object);
-	}
 
 	// ─────────────────────────────────────────────
 	// Data-format conversions
 	// ─────────────────────────────────────────────
 
 	/**
-	 * Converts XML to JSON (as String)
-	 * @param xml as String
-	 * @return json as String
+	 * Converts XML to JSON.
+	 *
+	 * <p>Null, empty, and blank input are treated as an empty document
+	 * and result in the canonical empty JSON object {@code {}}.</p>
+	 *
+	 * @param xml XML document
+	 * @return JSON representation, or {@code {}} for empty input
+	 * @throws DocConversionException if conversion fails
 	 */
-	public static String convertXmlToJson(String xml) {
+	public static String xmlToJson(String xml) {
 		if (isNullOrBlank(xml)) {
-			return "{}";
+			return EMPTY_JSON;
 		}
-		return JSON_MAPPER.writeValueAsString(XML_MAPPER.readTree(xml));
+		try {
+			return JSON_MAPPER.writeValueAsString(XML_MAPPER.readTree(xml));
+		} catch (Exception e) {
+			throw wrap("Failed to convert XML to JSON", e);
+		}
 	}
 
 	/**
-	 * Converts XML to YAML (as String)
-	 * @param xml as String
-	 * @return yaml as String
+	 * Converts XML to YAML.
+	 *
+	 * <p>Null, empty, and blank input are treated as an empty document
+	 * and result in the canonical empty YAML object {@code {}}.</p>
+	 *
+	 * @param xml XML document
+	 * @return YAML representation, or {@code {}} for empty input
+	 * @throws DocConversionException if conversion fails
 	 */
-	public static String convertXmlToYaml(String xml) {
+	public static String xmlToYaml(String xml) {
 		if (isNullOrBlank(xml)) {
-			return "";
+			return EMPTY_YAML;
 		}
-		return YAML_MAPPER.writeValueAsString(XML_MAPPER.readTree(xml));
+		try {
+			return YAML_MAPPER.writeValueAsString(XML_MAPPER.readTree(xml));
+		} catch (Exception e) {
+			throw wrap("Failed to convert XML to YAML", e);
+		}
 	}
 
 	/**
-	 * Converts XML to CSV (as String)
-	 * @param xml as String
-	 * @return csv as String
+	 * Converts XML to CSV.
+	 *
+	 * <p>Null, empty, and blank input are treated as an empty document
+	 * and result in an empty string.</p>
+	 *
+	 * @param xml XML document
+	 * @return CSV representation, or {@code ""} for empty input
+	 * @throws DocConversionException if conversion fails
 	 */
-	public static String convertXmlToCsv(String xml) {
+	public static String xmlToCsv(String xml) {
 		if (isNullOrBlank(xml)) {
-			return "";
+			return EMPTY_CSV;
 		}
-		return treeToCsv(XML_MAPPER.readTree(xml));
+		try {
+			return treeToCsv(XML_MAPPER.readTree(xml));
+		} catch (Exception e) {
+			throw wrap("Failed to convert XML to CSV", e);
+		}
 	}
 
 	/**
-	 * Converts JSON to XML (as String)
-	 * @param json as String
-	 * @return xml as String
+	 * Converts JSON to XML.
+	 *
+	 * <p>Null, empty, and blank input are treated as an empty document
+	 * and result in the canonical empty XML document {@code <root/>}.</p>
+	 *
+	 * @param json JSON document
+	 * @return XML representation, or {@code <root/>} for empty input
+	 * @throws DocConversionException if conversion fails
 	 */
-	public static String convertJsonToXml(String json) {
+	public static String jsonToXml(String json) {
 		if (isNullOrBlank(json)) {
-			return "";
+			return EMPTY_XML;
 		}
-		return treeToXml(JSON_MAPPER.readTree(json));
+		try {
+			return treeToXml(JSON_MAPPER.readTree(json));
+		} catch (Exception e) {
+			throw wrap("Failed to convert JSON to XML", e);
+		}
 	}
 
 	/**
-	 * Converts JSON to YAML (as String)
-	 * @param json as String
-	 * @return yaml as String
+	 * Converts JSON to YAML.
+	 *
+	 * <p>Null, empty, and blank input are treated as an empty document
+	 * and result in the canonical empty YAML object {@code {}}.</p>
+	 *
+	 * @param json JSON document
+	 * @return YAML representation, or {@code {}} for empty input
+	 * @throws DocConversionException if conversion fails
 	 */
-	public static String convertJsonToYaml(String json) {
+	public static String jsonToYaml(String json) {
 		if (isNullOrBlank(json)) {
-			return "";
+			return EMPTY_YAML;
 		}
-		return YAML_MAPPER.writeValueAsString(JSON_MAPPER.readTree(json));
+		try {
+			return YAML_MAPPER.writeValueAsString(JSON_MAPPER.readTree(json));
+		} catch (Exception e) {
+			throw wrap("Failed to convert JSON to YAML", e);
+		}
 	}
 
 	/**
-	 * Converts JSON to CSV (as String)
-	 * @param json as String
-	 * @return csv as String
+	 * Converts JSON to CSV.
+	 *
+	 * <p>Null, empty, and blank input are treated as an empty document
+	 * and result in an empty string.</p>
+	 *
+	 * @param json JSON document
+	 * @return CSV representation, or {@code ""} for empty input
+	 * @throws DocConversionException if conversion fails
 	 */
-	public static String convertJsonToCsv(String json) {
+	public static String jsonToCsv(String json) {
 		if (isNullOrBlank(json)) {
-			return "";
+			return EMPTY_CSV;
 		}
-		return treeToCsv(JSON_MAPPER.readTree(json));
+		try {
+			return treeToCsv(JSON_MAPPER.readTree(json));
+		} catch (Exception e) {
+			throw wrap("Failed to convert JSON to CSV", e);
+		}
 	}
 
 	/**
-	 * Converts CSV to XML (as String)
-	 * @param csv as String
-	 * @return xml as String
+	 * Converts CSV to XML.
+	 *
+	 * <p>Null, empty, and blank input are treated as an empty document
+	 * and result in the canonical empty XML document {@code <root/>}.</p>
+	 *
+	 * @param csv CSV document
+	 * @return XML representation, or {@code <root/>} for empty input
+	 * @throws DocConversionException if conversion fails
 	 */
-	public static String convertCsvToXml(String csv) {
-		StringBuilder xml = new StringBuilder(INITIAL_BUFFER_SIZE);
-		xml.append("<?xml version='1.0' encoding='UTF-8'?><rows>");
-		try (MappingIterator<String[]> rows = CSV_ROW_READER.readValues(nullToEmpty(csv))) {
-			while (rows.hasNextValue()) {
-				String[] row = rows.nextValue();
-				if (isBlankRow(row)) {
-					continue;
+	public static String csvToXml(String csv) {
+		if (isNullOrBlank(csv)) {
+			return EMPTY_XML;
+		}
+		try {
+			StringBuilder xml = new StringBuilder(INITIAL_BUFFER_SIZE);
+			xml.append("<?xml version='1.0' encoding='UTF-8'?><rows>");
+			try (MappingIterator<String[]> rows = CSV_ROW_READER.readValues(nullToEmpty(csv))) {
+				while (rows.hasNextValue()) {
+					String[] row = rows.nextValue();
+					if (isBlankRow(row)) {
+						continue;
+					}
+					xml.append("<row>");
+					for (String col : row) {
+						xml.append("<item>");
+						appendEscaped(xml, col != null ? col : "");
+						xml.append("</item>");
+					}
+					xml.append("</row>");
 				}
-				xml.append("<row>");
-				for (String col : row) {
-					xml.append("<item>");
-					appendEscaped(xml, col != null ? col : "");
-					xml.append("</item>");
-				}
-				xml.append("</row>");
 			}
+			xml.append("</rows>");
+			return xml.toString();
+		} catch (Exception e) {
+			throw wrap("Failed to convert CSV to XML", e);
 		}
-		xml.append("</rows>");
-		return xml.toString();
 	}
 
 	/**
-	 * Converts CSV to JSON (as String)
-	 * @param csv as String
-	 * @return json as String
+	 * Converts CSV to JSON.
+	 *
+	 * <p>Null, empty, and blank input are treated as an empty document
+	 * and result in the canonical empty JSON object {@code {}}.</p>
+	 *
+	 * @param csv CSV document
+	 * @return JSON representation, or {@code {}} for empty input
+	 * @throws DocConversionException if conversion fails
 	 */
-	public static String convertCsvToJson(String csv) {
-		return JSON_MAPPER.writeValueAsString(csvToTree(csv));
+	public static String csvToJson(String csv) {
+		if (isNullOrBlank(csv)) {
+			return EMPTY_JSON;
+		}
+		try {
+			return JSON_MAPPER.writeValueAsString(csvToTree(csv));
+		} catch (Exception e) {
+			throw wrap("Failed to convert CSV to JSON", e);
+		}
 	}
 
 	/**
-	 * Converts CSV to YAML (as String)
-	 * @param csv as String
-	 * @return yaml as String
+	 * Converts CSV to YAML.
+	 *
+	 * <p>Null, empty, and blank input are treated as an empty document
+	 * and result in the canonical empty YAML object {@code {}}.</p>
+	 *
+	 * @param csv CSV document
+	 * @return YAML representation, or {@code {}} for empty input
+	 * @throws DocConversionException if conversion fails
 	 */
-	public static String convertCsvToYaml(String csv) {
-		return YAML_MAPPER.writeValueAsString(csvToTree(csv));
+	public static String csvToYaml(String csv) {
+		if (isNullOrBlank(csv)) {
+			return EMPTY_YAML;
+		}
+		try {
+			return YAML_MAPPER.writeValueAsString(csvToTree(csv));
+		} catch (Exception e) {
+			throw wrap("Failed to convert CSV to YAML", e);
+		}
 	}
 
 	/**
-	 * Converts YAML to XML (as String)
-	 * @param yaml as String
-	 * @return xml as String
+	 * Converts YAML to XML.
+	 *
+	 * <p>Null, empty, and blank input are treated as an empty document
+	 * and result in the canonical empty XML document {@code <root/>}.</p>
+	 *
+	 * @param yaml YAML document
+	 * @return XML representation, or {@code <root/>} for empty input
+	 * @throws DocConversionException if conversion fails
 	 */
-	public static String convertYamlToXml(String yaml) {
+	public static String yamlToXml(String yaml) {
 		if (isNullOrBlank(yaml)) {
-			return "";
+			return EMPTY_XML;
 		}
-		return treeToXml(YAML_MAPPER.readTree(yaml));
+		try {
+			return treeToXml(YAML_MAPPER.readTree(yaml));
+		} catch (Exception e) {
+			throw wrap("Failed to convert YAML to XML", e);
+		}
 	}
 
 	/**
-	 * Converts YAML to JSON (as String)
-	 * @param yaml as String
-	 * @return json as String
+	 * Converts YAML to JSON.
+	 *
+	 * <p>Null, empty, and blank input are treated as an empty document
+	 * and result in the canonical empty JSON object {@code {}}.</p>
+	 *
+	 * @param yaml YAML document
+	 * @return JSON representation, or {@code {}} for empty input
+	 * @throws DocConversionException if conversion fails
 	 */
-	public static String convertYamlToJson(String yaml) {
+	public static String yamlToJson(String yaml) {
 		if (isNullOrBlank(yaml)) {
-			return "{}";
+			return EMPTY_JSON;
 		}
-		return JSON_MAPPER.writeValueAsString(YAML_MAPPER.readTree(yaml));
+		try {
+			return JSON_MAPPER.writeValueAsString(YAML_MAPPER.readTree(yaml));
+		} catch (Exception e) {
+			throw wrap("Failed to convert YAML to JSON", e);
+		}
 	}
 
 	/**
-	 * Converts YAML to CSV (as String)
-	 * @param yaml as String
-	 * @return csv as String
+	 * Converts YAML to CSV.
+	 *
+	 * <p>Null, empty, and blank input are treated as an empty document
+	 * and result in an empty string.</p>
+	 *
+	 * @param yaml YAML document
+	 * @return CSV representation, or {@code ""} for empty input
+	 * @throws DocConversionException if conversion fails
 	 */
-	public static String convertYamlToCsv(String yaml) {
+	public static String yamlToCsv(String yaml) {
 		if (isNullOrBlank(yaml)) {
-			return "";
+			return EMPTY_CSV;
 		}
-		return treeToCsv(YAML_MAPPER.readTree(yaml));
+		try {
+			return treeToCsv(YAML_MAPPER.readTree(yaml));
+		} catch (Exception e) {
+			throw wrap("Failed to convert YAML to CSV", e);
+		}
 	}
 
 	// ─────────────────────────────────────────────
@@ -700,25 +529,11 @@ public final class DocConverter {
 		return value == null || value.isBlank();
 	}
 
-	private static DocumentBuilder newDocumentBuilder() throws ParserConfigurationException {
-		return DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
-	}
-
-	private static DocumentBuilderFactory createSecureDocumentBuilderFactory() {
-		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-
-		try {
-			factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-			factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
-			factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
-			factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-		} catch (ParserConfigurationException e) {
-			factory.setValidating(false);
-			factory.setNamespaceAware(true);
+	private static DocConversionException wrap(String message, Exception e) {
+		if (e instanceof DocConversionException conversionException) {
+			return conversionException;
 		}
-		factory.setXIncludeAware(false);
-		factory.setExpandEntityReferences(false);
-		return factory;
+		return new DocConversionException(message, e);
 	}
 
 	private static void appendEscaped(StringBuilder xml, String value) {

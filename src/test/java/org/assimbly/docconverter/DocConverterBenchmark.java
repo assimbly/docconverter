@@ -44,69 +44,69 @@ public class DocConverterBenchmark {
 
 	@Setup
 	public void setup() {
-		csvAsXml = DocConverter.convertCsvToXml(SIMPLE_CSV);
-		csvAsJson = DocConverter.convertCsvToJson(SIMPLE_CSV);
-		csvAsYaml = DocConverter.convertCsvToYaml(SIMPLE_CSV);
+		csvAsXml = DocConverter.csvToXml(SIMPLE_CSV);
+		csvAsJson = DocConverter.csvToJson(SIMPLE_CSV);
+		csvAsYaml = DocConverter.csvToYaml(SIMPLE_CSV);
 	}
 
 	@Benchmark
 	public String xmlToJson() {
-		return DocConverter.convertXmlToJson(SIMPLE_XML);
+		return DocConverter.xmlToJson(SIMPLE_XML);
 	}
 
 	@Benchmark
 	public String xmlToYaml() {
-		return DocConverter.convertXmlToYaml(SIMPLE_XML);
+		return DocConverter.xmlToYaml(SIMPLE_XML);
 	}
 
 	@Benchmark
 	public String xmlToCsv() {
-		return DocConverter.convertXmlToCsv(csvAsXml);
+		return DocConverter.xmlToCsv(csvAsXml);
 	}
 
 	@Benchmark
 	public String jsonToXml() {
-		return DocConverter.convertJsonToXml(SIMPLE_JSON);
+		return DocConverter.jsonToXml(SIMPLE_JSON);
 	}
 
 	@Benchmark
 	public String jsonToYaml() {
-		return DocConverter.convertJsonToYaml(SIMPLE_JSON);
+		return DocConverter.jsonToYaml(SIMPLE_JSON);
 	}
 
 	@Benchmark
 	public String jsonToCsv() {
-		return DocConverter.convertJsonToCsv(csvAsJson);
+		return DocConverter.jsonToCsv(csvAsJson);
 	}
 
 	@Benchmark
 	public String yamlToJson() {
-		return DocConverter.convertYamlToJson(SIMPLE_YAML);
+		return DocConverter.yamlToJson(SIMPLE_YAML);
 	}
 
 	@Benchmark
 	public String yamlToXml() {
-		return DocConverter.convertYamlToXml(SIMPLE_YAML);
+		return DocConverter.yamlToXml(SIMPLE_YAML);
 	}
 
 	@Benchmark
 	public String yamlToCsv() {
-		return DocConverter.convertYamlToCsv(csvAsYaml);
+		return DocConverter.yamlToCsv(csvAsYaml);
 	}
 
 	@Benchmark
 	public String csvToXml() {
-		return DocConverter.convertCsvToXml(SIMPLE_CSV);
+		return DocConverter.csvToXml(SIMPLE_CSV);
 	}
 
 	@Benchmark
 	public String csvToJson() {
-		return DocConverter.convertCsvToJson(SIMPLE_CSV);
+		return DocConverter.csvToJson(SIMPLE_CSV);
 	}
 
 	@Benchmark
 	public String csvToYaml() {
-		return DocConverter.convertCsvToYaml(SIMPLE_CSV);
+		return DocConverter.csvToYaml(SIMPLE_CSV);
 	}
 
 	public static void main(String[] args) throws Exception {
