@@ -27,7 +27,14 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -40,8 +47,10 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Generic utility class to convert between XML, JSON, YAML, CSV and String.
- * Jackson tree model is the intermediate representation for format conversions.
+ * Static utility for converting between XML, JSON, YAML, CSV and common Java types.
+ * <p>
+ * Format conversions use Jackson's tree model as the intermediate representation.
+ * This class is not instantiable.
  */
 public final class DocConverter {
 
@@ -76,13 +85,13 @@ public final class DocConverter {
 	// ─────────────────────────────────────────────
 
 	/**
-	 * Converts a Stream to a String
+	 * Reads an InputStream into a UTF-8 String. The caller remains responsible for closing the stream.
 	 * @param inputStream InputStream
 	 * @return String
 	 */
 	public static String convertStreamToString(InputStream inputStream) {
-		try (InputStream in = inputStream) {
-			return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+		try {
+			return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
 		} catch (IOException e) {
 			throw new UncheckedIOException(e);
 		}
@@ -105,7 +114,7 @@ public final class DocConverter {
 	 * Converts an org.w3c.dom.Document (XML) to a String
 	 * @param document org.w3c.dom.Document XML document
 	 * @return String
-	 * @throws Exception generic exception
+	 * @throws Exception if the document cannot be serialized
 	 */
 	public static String convertDocToString(Document document) throws Exception {
 		Transformer transformer = TRANSFORMER_FACTORY.newTransformer();
@@ -118,7 +127,7 @@ public final class DocConverter {
 	 * Converts a String to an org.w3c.dom.Document (XML)
 	 * @param xmlString String
 	 * @return Document org.w3c.dom.Document XML document
-	 * @throws Exception generic exception
+	 * @throws Exception if the string is not well-formed XML
 	 */
 	public static Document convertStringToDoc(String xmlString) throws Exception {
 		return newDocumentBuilder().parse(new InputSource(new StringReader(xmlString)));
@@ -134,19 +143,19 @@ public final class DocConverter {
 	 * @return String
 	 */
 	public static String convertNodeToString(Node node) {
-		DOMImplementationLS lsImpl = (DOMImplementationLS)
+		DOMImplementationLS domImplementation = (DOMImplementationLS)
 				node.getOwnerDocument().getImplementation().getFeature("LS", "3.0");
-		LSSerializer lsSerializer = lsImpl.createLSSerializer();
-		DOMConfiguration config = lsSerializer.getDomConfig();
+		LSSerializer serializer = domImplementation.createLSSerializer();
+		DOMConfiguration config = serializer.getDomConfig();
 		config.setParameter("xml-declaration", Boolean.FALSE);
-		return lsSerializer.writeToString(node);
+		return serializer.writeToString(node);
 	}
 
 	/**
 	 * Converts a String to an org.w3c.dom.Node
 	 * @param string XML node as string, e.g. {@code <node>value</node>}
 	 * @return Node org.w3c.dom.Node
-	 * @throws Exception generic exception
+	 * @throws Exception if the string is not well-formed XML
 	 */
 	public static Node convertStringToNode(String string) throws Exception {
 		return newDocumentBuilder().parse(new InputSource(new StringReader(string))).getDocumentElement();
@@ -160,9 +169,9 @@ public final class DocConverter {
 	 * Converts a URL to a String
 	 * @param url java.net.URL
 	 * @return String
-	 * @throws Exception generic exception
+	 * @throws IOException if the URL cannot be read
 	 */
-	public static String convertURLToString(URL url) throws Exception {
+	public static String convertURLToString(URL url) throws IOException {
 		try (InputStream stream = url.openStream()) {
 			return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
 		}
@@ -172,9 +181,9 @@ public final class DocConverter {
 	 * Converts a URI to a String
 	 * @param uri java.net.URI
 	 * @return String
-	 * @throws Exception generic exception
+	 * @throws IOException if the URI cannot be read
 	 */
-	public static String convertUriToString(URI uri) throws Exception {
+	public static String convertUriToString(URI uri) throws IOException {
 		return convertURLToString(uri.toURL());
 	}
 
@@ -182,7 +191,7 @@ public final class DocConverter {
 	 * Converts a URI to an org.w3c.dom.Document (XML)
 	 * @param uri java.net.URI
 	 * @return Document org.w3c.dom.Document XML document
-	 * @throws Exception generic exception
+	 * @throws Exception if the URI cannot be read or is not well-formed XML
 	 */
 	public static Document convertUriToDoc(URI uri) throws Exception {
 		URL url = uri.toURL();
@@ -199,9 +208,9 @@ public final class DocConverter {
 	 * Converts a file to String (UTF-8)
 	 * @param path path as String
 	 * @return String
-	 * @throws Exception generic exception
+	 * @throws IOException if the file cannot be read
 	 */
-	public static String convertFileToString(String path) throws Exception {
+	public static String convertFileToString(String path) throws IOException {
 		return Files.readString(Paths.get(path));
 	}
 
@@ -210,23 +219,22 @@ public final class DocConverter {
 	 * @param path path as String
 	 * @param encoding Charset (defaults to UTF-8 when null)
 	 * @return String
-	 * @throws Exception generic exception
+	 * @throws IOException if the file cannot be read
 	 */
-	public static String convertFileToString(String path, Charset encoding) throws Exception {
-		if (encoding == null) {
-			encoding = StandardCharsets.UTF_8;
-		}
-		return Files.readString(Paths.get(path), encoding);
+	public static String convertFileToString(String path, Charset encoding) throws IOException {
+		Charset charset = encoding != null ? encoding : StandardCharsets.UTF_8;
+		return Files.readString(Paths.get(path), charset);
 	}
 
 	/**
 	 * Converts a String to a File
 	 * @param path path as String
 	 * @param content content as String
-	 * @throws Exception generic exception
+	 * @throws IOException if the file cannot be written
 	 */
-	public static void convertStringToFile(String path, String content) throws Exception {
-		Files.writeString(Paths.get(path), content, StandardOpenOption.CREATE);
+	public static void convertStringToFile(String path, String content) throws IOException {
+		Files.writeString(Paths.get(path), content,
+				StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
 	}
 
 	/**
@@ -242,9 +250,9 @@ public final class DocConverter {
 	 * Converts a File to a URL
 	 * @param file File object
 	 * @return URL
-	 * @throws Exception generic exception
+	 * @throws IOException if the file cannot be converted to a URL
 	 */
-	public static URL convertFileToURL(File file) throws Exception {
+	public static URL convertFileToURL(File file) throws IOException {
 		return file.toURI().toURL();
 	}
 
@@ -300,9 +308,9 @@ public final class DocConverter {
 	 * Converts a Reader to a String
 	 * @param reader java.io.Reader
 	 * @return String
-	 * @throws Exception generic exception
+	 * @throws IOException if the reader cannot be read
 	 */
-	public static String convertReaderToString(Reader reader) throws Exception {
+	public static String convertReaderToString(Reader reader) throws IOException {
 		StringWriter writer = new StringWriter(INITIAL_BUFFER_SIZE);
 		reader.transferTo(writer);
 		return writer.toString();
@@ -338,10 +346,9 @@ public final class DocConverter {
 	 * Converts XML to JSON (as String)
 	 * @param xml as String
 	 * @return json as String
-	 * @throws Exception generic exception
 	 */
-	public static String convertXmlToJson(String xml) throws Exception {
-		if (xml == null || xml.isEmpty()) {
+	public static String convertXmlToJson(String xml) {
+		if (isNullOrBlank(xml)) {
 			return "{}";
 		}
 		return JSON_MAPPER.writeValueAsString(XML_MAPPER.readTree(xml));
@@ -353,6 +360,9 @@ public final class DocConverter {
 	 * @return yaml as String
 	 */
 	public static String convertXmlToYaml(String xml) {
+		if (isNullOrBlank(xml)) {
+			return "";
+		}
 		return YAML_MAPPER.writeValueAsString(XML_MAPPER.readTree(xml));
 	}
 
@@ -360,10 +370,9 @@ public final class DocConverter {
 	 * Converts XML to CSV (as String)
 	 * @param xml as String
 	 * @return csv as String
-	 * @throws Exception generic exception
 	 */
-	public static String convertXmlToCsv(String xml) throws Exception {
-		if (xml == null || xml.isEmpty()) {
+	public static String convertXmlToCsv(String xml) {
+		if (isNullOrBlank(xml)) {
 			return "";
 		}
 		return treeToCsv(XML_MAPPER.readTree(xml));
@@ -375,7 +384,7 @@ public final class DocConverter {
 	 * @return xml as String
 	 */
 	public static String convertJsonToXml(String json) {
-		if (json == null || json.isBlank()) {
+		if (isNullOrBlank(json)) {
 			return "";
 		}
 		return treeToXml(JSON_MAPPER.readTree(json));
@@ -387,6 +396,9 @@ public final class DocConverter {
 	 * @return yaml as String
 	 */
 	public static String convertJsonToYaml(String json) {
+		if (isNullOrBlank(json)) {
+			return "";
+		}
 		return YAML_MAPPER.writeValueAsString(JSON_MAPPER.readTree(json));
 	}
 
@@ -394,10 +406,9 @@ public final class DocConverter {
 	 * Converts JSON to CSV (as String)
 	 * @param json as String
 	 * @return csv as String
-	 * @throws Exception generic exception
 	 */
-	public static String convertJsonToCsv(String json) throws Exception {
-		if (json == null || json.isBlank()) {
+	public static String convertJsonToCsv(String json) {
+		if (isNullOrBlank(json)) {
 			return "";
 		}
 		return treeToCsv(JSON_MAPPER.readTree(json));
@@ -409,34 +420,33 @@ public final class DocConverter {
 	 * @return xml as String
 	 */
 	public static String convertCsvToXml(String csv) {
-		StringBuilder sb = new StringBuilder(INITIAL_BUFFER_SIZE);
-		sb.append("<?xml version='1.0' encoding='UTF-8'?><rows>");
+		StringBuilder xml = new StringBuilder(INITIAL_BUFFER_SIZE);
+		xml.append("<?xml version='1.0' encoding='UTF-8'?><rows>");
 		try (MappingIterator<String[]> rows = CSV_ROW_READER.readValues(nullToEmpty(csv))) {
 			while (rows.hasNextValue()) {
 				String[] row = rows.nextValue();
 				if (isBlankRow(row)) {
 					continue;
 				}
-				sb.append("<row>");
+				xml.append("<row>");
 				for (String col : row) {
-					sb.append("<item>");
-					appendEscaped(sb, col != null ? col : "");
-					sb.append("</item>");
+					xml.append("<item>");
+					appendEscaped(xml, col != null ? col : "");
+					xml.append("</item>");
 				}
-				sb.append("</row>");
+				xml.append("</row>");
 			}
 		}
-		sb.append("</rows>");
-		return sb.toString();
+		xml.append("</rows>");
+		return xml.toString();
 	}
 
 	/**
 	 * Converts CSV to JSON (as String)
 	 * @param csv as String
 	 * @return json as String
-	 * @throws Exception generic exception
 	 */
-	public static String convertCsvToJson(String csv) throws Exception {
+	public static String convertCsvToJson(String csv) {
 		return JSON_MAPPER.writeValueAsString(csvToTree(csv));
 	}
 
@@ -455,6 +465,9 @@ public final class DocConverter {
 	 * @return xml as String
 	 */
 	public static String convertYamlToXml(String yaml) {
+		if (isNullOrBlank(yaml)) {
+			return "";
+		}
 		return treeToXml(YAML_MAPPER.readTree(yaml));
 	}
 
@@ -464,6 +477,9 @@ public final class DocConverter {
 	 * @return json as String
 	 */
 	public static String convertYamlToJson(String yaml) {
+		if (isNullOrBlank(yaml)) {
+			return "{}";
+		}
 		return JSON_MAPPER.writeValueAsString(YAML_MAPPER.readTree(yaml));
 	}
 
@@ -471,9 +487,11 @@ public final class DocConverter {
 	 * Converts YAML to CSV (as String)
 	 * @param yaml as String
 	 * @return csv as String
-	 * @throws Exception generic exception
 	 */
-	public static String convertYamlToCsv(String yaml) throws Exception {
+	public static String convertYamlToCsv(String yaml) {
+		if (isNullOrBlank(yaml)) {
+			return "";
+		}
 		return treeToCsv(YAML_MAPPER.readTree(yaml));
 	}
 
@@ -482,50 +500,60 @@ public final class DocConverter {
 	// ─────────────────────────────────────────────
 
 	/**
-	 * Checks if String is a XML
+	 * Checks if String is XML
 	 * @param xml as String
 	 * @return check as boolean
 	 */
 	public static boolean isXML(String xml) {
-		if (xml == null || xml.isBlank()) return false;
-		String t = xml.stripLeading();
-		if (!t.startsWith("<")) return false;
+		if (isNullOrBlank(xml)) {
+			return false;
+		}
+		String stripped = xml.stripLeading();
+		if (!stripped.startsWith("<")) {
+			return false;
+		}
 		try {
 			XML_MAPPER.readTree(xml);
 			return true;
-		} catch (Exception ex) {
+		} catch (Exception ignored) {
 			return false;
 		}
 	}
 
 	/**
-	 * Checks if String is a JSON
+	 * Checks if String is JSON
 	 * @param json as String
 	 * @return check as boolean
 	 */
 	public static boolean isJson(String json) {
-		if (json == null || json.isBlank()) return false;
-		String t = json.stripLeading();
-		if (!t.startsWith("{") && !t.startsWith("[")) return false;
+		if (isNullOrBlank(json)) {
+			return false;
+		}
+		String stripped = json.stripLeading();
+		if (!stripped.startsWith("{") && !stripped.startsWith("[")) {
+			return false;
+		}
 		try {
 			JSON_MAPPER.readTree(json);
 			return true;
-		} catch (Exception ex) {
+		} catch (Exception ignored) {
 			return false;
 		}
 	}
 
 	/**
-	 * Checks if String is a YAML
+	 * Checks if String is YAML
 	 * @param yaml as String
 	 * @return check as boolean
 	 */
 	public static boolean isYaml(String yaml) {
-		if (yaml == null || yaml.isBlank()) return false;
+		if (isNullOrBlank(yaml)) {
+			return false;
+		}
 		try {
 			YAML_MAPPER.readTree(yaml);
 			return true;
-		} catch (Exception ex) {
+		} catch (Exception ignored) {
 			return false;
 		}
 	}
@@ -578,21 +606,21 @@ public final class DocConverter {
 			return "";
 		}
 
-		StringBuilder sb = new StringBuilder(INITIAL_BUFFER_SIZE);
+		StringBuilder csv = new StringBuilder(INITIAL_BUFFER_SIZE);
 		if (rows.isArray()) {
 			for (JsonNode row : rows) {
-				appendCsvRow(sb, row);
+				appendCsvRow(csv, row);
 			}
 		} else {
-			appendCsvRow(sb, rows);
+			appendCsvRow(csv, rows);
 		}
 
-		int length = sb.length();
-		while (length > 0 && (sb.charAt(length - 1) == '\n' || sb.charAt(length - 1) == '\r')) {
+		int length = csv.length();
+		while (length > 0 && (csv.charAt(length - 1) == '\n' || csv.charAt(length - 1) == '\r')) {
 			length--;
 		}
-		sb.setLength(length);
-		return sb.toString();
+		csv.setLength(length);
+		return csv.toString();
 	}
 
 	private static JsonNode extractCsvRows(JsonNode tree) {
@@ -609,7 +637,7 @@ public final class DocConverter {
 		return tree.get("row");
 	}
 
-	private static void appendCsvRow(StringBuilder sb, JsonNode row) {
+	private static void appendCsvRow(StringBuilder csv, JsonNode row) {
 		JsonNode items = row.get("item");
 		if (items == null || items.isNull()) {
 			return;
@@ -617,41 +645,39 @@ public final class DocConverter {
 		if (items.isArray()) {
 			for (int i = 0, size = items.size(); i < size; i++) {
 				if (i > 0) {
-					sb.append(',');
+					csv.append(',');
 				}
-				appendCsvField(sb, items.get(i).asString());
+				appendCsvField(csv, items.get(i).asString());
 			}
 		} else {
-			appendCsvField(sb, items.asString());
+			appendCsvField(csv, items.asString());
 		}
-		sb.append('\n');
+		csv.append('\n');
 	}
 
-	private static void appendCsvField(StringBuilder sb, String value) {
-		if (value == null) {
-			value = "";
-		}
-		boolean quote = false;
-		for (int i = 0, len = value.length(); i < len; i++) {
-			char c = value.charAt(i);
+	private static void appendCsvField(StringBuilder csv, String value) {
+		String fieldValue = value == null ? "" : value;
+		boolean needsQuotes = false;
+		for (int i = 0, len = fieldValue.length(); i < len; i++) {
+			char c = fieldValue.charAt(i);
 			if (c == ',' || c == '"' || c == '\n' || c == '\r') {
-				quote = true;
+				needsQuotes = true;
 				break;
 			}
 		}
-		if (!quote) {
-			sb.append(value);
+		if (!needsQuotes) {
+			csv.append(fieldValue);
 			return;
 		}
-		sb.append('"');
-		for (int i = 0, len = value.length(); i < len; i++) {
-			char c = value.charAt(i);
+		csv.append('"');
+		for (int i = 0, len = fieldValue.length(); i < len; i++) {
+			char c = fieldValue.charAt(i);
 			if (c == '"') {
-				sb.append('"');
+				csv.append('"');
 			}
-			sb.append(c);
+			csv.append(c);
 		}
-		sb.append('"');
+		csv.append('"');
 	}
 
 	private static boolean isBlankRow(String[] row) {
@@ -668,6 +694,10 @@ public final class DocConverter {
 
 	private static String nullToEmpty(String value) {
 		return value == null ? "" : value;
+	}
+
+	private static boolean isNullOrBlank(String value) {
+		return value == null || value.isBlank();
 	}
 
 	private static DocumentBuilder newDocumentBuilder() throws ParserConfigurationException {
@@ -691,16 +721,16 @@ public final class DocConverter {
 		return factory;
 	}
 
-	private static void appendEscaped(StringBuilder sb, String value) {
+	private static void appendEscaped(StringBuilder xml, String value) {
 		for (int i = 0, len = value.length(); i < len; i++) {
 			char c = value.charAt(i);
 			switch (c) {
-				case '<'  -> sb.append("&lt;");
-				case '>'  -> sb.append("&gt;");
-				case '&'  -> sb.append("&amp;");
-				case '"'  -> sb.append("&quot;");
-				case '\'' -> sb.append("&apos;");
-				default   -> sb.append(c);
+				case '<'  -> xml.append("&lt;");
+				case '>'  -> xml.append("&gt;");
+				case '&'  -> xml.append("&amp;");
+				case '"'  -> xml.append("&quot;");
+				case '\'' -> xml.append("&apos;");
+				default   -> xml.append(c);
 			}
 		}
 	}
