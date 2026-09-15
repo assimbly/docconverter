@@ -66,6 +66,21 @@ git push
 
 ---
 
+
+## benchmark
+
+JMH benchmarks for DocConverter.
+
+This compiles and start test runs for each converter
+
+### Usage:
+
+To print the benchmark:
+
+```benchmark```
+
+---
+
 ## checkversions
 
 Checks the Maven dependencies for the latest versions.
