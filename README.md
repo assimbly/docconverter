@@ -91,14 +91,14 @@ Maven:
 <dependency>
   <groupId>io.github.assimbly</groupId>
   <artifactId>docconverter</artifactId>
-  <version>3.0.1</version>
+  <version>3.0.3</version>
 </dependency>
 ```
 
 Gradle:
 
 ```groovy
-implementation 'io.github.assimbly:docconverter:3.0.1'
+implementation 'io.github.assimbly:docconverter:3.0.3'
 ```
 
 Build from source:

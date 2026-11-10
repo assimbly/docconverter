@@ -28,16 +28,47 @@ public final class DocConverter {
 
 	private static final YAMLMapper YAML_MAPPER = YAMLMapper.builder().build();
 
-	private static final XmlMapper XML_MAPPER = XmlMapper.builder()
-			.defaultUseWrapper(false)
-			.nameForTextElement("value")
-			.enable(XmlReadFeature.WRAP_ROOT_ELEMENT_NAME)
-			.build();
+	/**
+	 * XML mapper used when reading XML.
+	 *
+	 * The "value" property represents the text content of an XML element.
+	 * This allows XML such as:
+	 *
+	 * <header>
+	 *     <name>test</name>
+	 *     234
+	 * </header>
+	 *
+	 * to be represented as:
+	 *
+	 * {
+	 *     "name": "test",
+	 *     "value": "234"
+	 * }
+	 */
+	private static final XmlMapper XML_READ_MAPPER = XmlMapper.builder()
+		.defaultUseWrapper(false)
+		.nameForTextElement("value")
+		.enable(XmlReadFeature.WRAP_ROOT_ELEMENT_NAME)
+		.build();
+
+	/**
+	 * XML mapper used when writing XML.
+	 *
+	 * No text-element mapping is configured here, so a JSON property named
+	 * "value" is serialized as a normal XML element:
+	 *
+	 * <value>234</value>
+	 */
+	private static final XmlMapper XML_WRITE_MAPPER = XmlMapper.builder()
+		.defaultUseWrapper(false)
+		.enable(XmlReadFeature.WRAP_ROOT_ELEMENT_NAME)
+		.build();
 
 	private static final CsvMapper CSV_MAPPER = CsvMapper.builder()
-			.enable(CsvReadFeature.WRAP_AS_ARRAY)
-			.enable(CsvReadFeature.SKIP_EMPTY_LINES)
-			.build();
+		.enable(CsvReadFeature.WRAP_AS_ARRAY)
+		.enable(CsvReadFeature.SKIP_EMPTY_LINES)
+		.build();
 
 	private static final ObjectReader CSV_ROW_READER = CSV_MAPPER.readerFor(String[].class);
 
@@ -68,8 +99,9 @@ public final class DocConverter {
 		if (isNullOrBlank(xml)) {
 			return EMPTY_JSON;
 		}
+
 		try {
-			return JSON_MAPPER.writeValueAsString(XML_MAPPER.readTree(xml));
+			return JSON_MAPPER.writeValueAsString(XML_READ_MAPPER.readTree(xml));
 		} catch (Exception e) {
 			throw wrap("Failed to convert XML to JSON", e);
 		}
@@ -89,8 +121,9 @@ public final class DocConverter {
 		if (isNullOrBlank(xml)) {
 			return EMPTY_YAML;
 		}
+
 		try {
-			return YAML_MAPPER.writeValueAsString(XML_MAPPER.readTree(xml));
+			return YAML_MAPPER.writeValueAsString(XML_READ_MAPPER.readTree(xml));
 		} catch (Exception e) {
 			throw wrap("Failed to convert XML to YAML", e);
 		}
@@ -110,8 +143,9 @@ public final class DocConverter {
 		if (isNullOrBlank(xml)) {
 			return EMPTY_CSV;
 		}
+
 		try {
-			return treeToCsv(XML_MAPPER.readTree(xml));
+			return treeToCsv(XML_READ_MAPPER.readTree(xml));
 		} catch (Exception e) {
 			throw wrap("Failed to convert XML to CSV", e);
 		}
@@ -131,6 +165,7 @@ public final class DocConverter {
 		if (isNullOrBlank(json)) {
 			return EMPTY_XML;
 		}
+
 		try {
 			return treeToXml(JSON_MAPPER.readTree(json));
 		} catch (Exception e) {
@@ -152,6 +187,7 @@ public final class DocConverter {
 		if (isNullOrBlank(json)) {
 			return EMPTY_YAML;
 		}
+
 		try {
 			return YAML_MAPPER.writeValueAsString(JSON_MAPPER.readTree(json));
 		} catch (Exception e) {
@@ -173,6 +209,7 @@ public final class DocConverter {
 		if (isNullOrBlank(json)) {
 			return EMPTY_CSV;
 		}
+
 		try {
 			return treeToCsv(JSON_MAPPER.readTree(json));
 		} catch (Exception e) {
@@ -194,24 +231,31 @@ public final class DocConverter {
 		if (isNullOrBlank(csv)) {
 			return EMPTY_XML;
 		}
+
 		try {
 			StringBuilder xml = new StringBuilder(INITIAL_BUFFER_SIZE);
 			xml.append("<?xml version='1.0' encoding='UTF-8'?><rows>");
+
 			try (MappingIterator<String[]> rows = CSV_ROW_READER.readValues(nullToEmpty(csv))) {
 				while (rows.hasNextValue()) {
 					String[] row = rows.nextValue();
+
 					if (isBlankRow(row)) {
 						continue;
 					}
+
 					xml.append("<row>");
+
 					for (String col : row) {
 						xml.append("<item>");
 						appendEscaped(xml, col != null ? col : "");
 						xml.append("</item>");
 					}
+
 					xml.append("</row>");
 				}
 			}
+
 			xml.append("</rows>");
 			return xml.toString();
 		} catch (Exception e) {
@@ -233,6 +277,7 @@ public final class DocConverter {
 		if (isNullOrBlank(csv)) {
 			return EMPTY_JSON;
 		}
+
 		try {
 			return JSON_MAPPER.writeValueAsString(csvToTree(csv));
 		} catch (Exception e) {
@@ -254,6 +299,7 @@ public final class DocConverter {
 		if (isNullOrBlank(csv)) {
 			return EMPTY_YAML;
 		}
+
 		try {
 			return YAML_MAPPER.writeValueAsString(csvToTree(csv));
 		} catch (Exception e) {
@@ -275,6 +321,7 @@ public final class DocConverter {
 		if (isNullOrBlank(yaml)) {
 			return EMPTY_XML;
 		}
+
 		try {
 			return treeToXml(YAML_MAPPER.readTree(yaml));
 		} catch (Exception e) {
@@ -296,6 +343,7 @@ public final class DocConverter {
 		if (isNullOrBlank(yaml)) {
 			return EMPTY_JSON;
 		}
+
 		try {
 			return JSON_MAPPER.writeValueAsString(YAML_MAPPER.readTree(yaml));
 		} catch (Exception e) {
@@ -317,6 +365,7 @@ public final class DocConverter {
 		if (isNullOrBlank(yaml)) {
 			return EMPTY_CSV;
 		}
+
 		try {
 			return treeToCsv(YAML_MAPPER.readTree(yaml));
 		} catch (Exception e) {
@@ -329,7 +378,8 @@ public final class DocConverter {
 	// ─────────────────────────────────────────────
 
 	/**
-	 * Checks if String is XML
+	 * Checks if String is XML.
+	 *
 	 * @param xml as String
 	 * @return check as boolean
 	 */
@@ -337,12 +387,15 @@ public final class DocConverter {
 		if (isNullOrBlank(xml)) {
 			return false;
 		}
+
 		String stripped = xml.stripLeading();
+
 		if (!stripped.startsWith("<")) {
 			return false;
 		}
+
 		try {
-			XML_MAPPER.readTree(xml);
+			XML_READ_MAPPER.readTree(xml);
 			return true;
 		} catch (Exception ignored) {
 			return false;
@@ -350,7 +403,8 @@ public final class DocConverter {
 	}
 
 	/**
-	 * Checks if String is JSON
+	 * Checks if String is JSON.
+	 *
 	 * @param json as String
 	 * @return check as boolean
 	 */
@@ -358,10 +412,13 @@ public final class DocConverter {
 		if (isNullOrBlank(json)) {
 			return false;
 		}
+
 		String stripped = json.stripLeading();
+
 		if (!stripped.startsWith("{") && !stripped.startsWith("[")) {
 			return false;
 		}
+
 		try {
 			JSON_MAPPER.readTree(json);
 			return true;
@@ -371,7 +428,8 @@ public final class DocConverter {
 	}
 
 	/**
-	 * Checks if String is YAML
+	 * Checks if String is YAML.
+	 *
 	 * @param yaml as String
 	 * @return check as boolean
 	 */
@@ -379,6 +437,7 @@ public final class DocConverter {
 		if (isNullOrBlank(yaml)) {
 			return false;
 		}
+
 		try {
 			YAML_MAPPER.readTree(yaml);
 			return true;
@@ -395,47 +454,61 @@ public final class DocConverter {
 		if (node == null || node.isNull() || node.isMissingNode()) {
 			return "";
 		}
+
 		if (node.isArray()) {
 			ObjectNode wrapper = JSON_MAPPER.createObjectNode();
 			ObjectNode arrayList = JSON_MAPPER.createObjectNode();
+
 			arrayList.set("item", node);
 			wrapper.set("ArrayList", arrayList);
-			return XML_MAPPER.writeValueAsString(wrapper);
+
+			return XML_WRITE_MAPPER.writeValueAsString(wrapper);
 		}
-		return XML_MAPPER.writeValueAsString(node);
+
+		return XML_WRITE_MAPPER.writeValueAsString(node);
 	}
 
 	private static JsonNode csvToTree(String csv) {
 		ArrayNode rowArray = JSON_MAPPER.createArrayNode();
+
 		try (MappingIterator<String[]> rows = CSV_ROW_READER.readValues(nullToEmpty(csv))) {
 			while (rows.hasNextValue()) {
 				String[] row = rows.nextValue();
+
 				if (isBlankRow(row)) {
 					continue;
 				}
+
 				ObjectNode rowNode = JSON_MAPPER.createObjectNode();
 				ArrayNode items = JSON_MAPPER.createArrayNode();
+
 				for (String col : row) {
 					items.add(col != null ? col : "");
 				}
+
 				rowNode.set("item", items);
 				rowArray.add(rowNode);
 			}
 		}
+
 		ObjectNode rowsNode = JSON_MAPPER.createObjectNode();
 		rowsNode.set("row", rowArray);
+
 		ObjectNode root = JSON_MAPPER.createObjectNode();
 		root.set("rows", rowsNode);
+
 		return root;
 	}
 
 	private static String treeToCsv(JsonNode tree) {
 		JsonNode rows = extractCsvRows(tree);
+
 		if (rows == null || rows.isMissingNode() || rows.isNull()) {
 			return "";
 		}
 
 		StringBuilder csv = new StringBuilder(INITIAL_BUFFER_SIZE);
+
 		if (rows.isArray()) {
 			for (JsonNode row : rows) {
 				appendCsvRow(csv, row);
@@ -445,10 +518,14 @@ public final class DocConverter {
 		}
 
 		int length = csv.length();
-		while (length > 0 && (csv.charAt(length - 1) == '\n' || csv.charAt(length - 1) == '\r')) {
+
+		while (length > 0 &&
+			(csv.charAt(length - 1) == '\n' || csv.charAt(length - 1) == '\r')) {
 			length--;
 		}
+
 		csv.setLength(length);
+
 		return csv.toString();
 	}
 
@@ -456,56 +533,72 @@ public final class DocConverter {
 		if (tree == null) {
 			return null;
 		}
+
 		JsonNode rowsWrapper = tree.get("rows");
+
 		if (rowsWrapper != null && !rowsWrapper.isNull()) {
 			JsonNode row = rowsWrapper.get("row");
+
 			if (row != null) {
 				return row;
 			}
 		}
+
 		return tree.get("row");
 	}
 
 	private static void appendCsvRow(StringBuilder csv, JsonNode row) {
 		JsonNode items = row.get("item");
+
 		if (items == null || items.isNull()) {
 			return;
 		}
+
 		if (items.isArray()) {
 			for (int i = 0, size = items.size(); i < size; i++) {
 				if (i > 0) {
 					csv.append(',');
 				}
+
 				appendCsvField(csv, items.get(i).asString());
 			}
 		} else {
 			appendCsvField(csv, items.asString());
 		}
+
 		csv.append('\n');
 	}
 
 	private static void appendCsvField(StringBuilder csv, String value) {
 		String fieldValue = value == null ? "" : value;
 		boolean needsQuotes = false;
+
 		for (int i = 0, len = fieldValue.length(); i < len; i++) {
 			char c = fieldValue.charAt(i);
+
 			if (c == ',' || c == '"' || c == '\n' || c == '\r') {
 				needsQuotes = true;
 				break;
 			}
 		}
+
 		if (!needsQuotes) {
 			csv.append(fieldValue);
 			return;
 		}
+
 		csv.append('"');
+
 		for (int i = 0, len = fieldValue.length(); i < len; i++) {
 			char c = fieldValue.charAt(i);
+
 			if (c == '"') {
 				csv.append('"');
 			}
+
 			csv.append(c);
 		}
+
 		csv.append('"');
 	}
 
@@ -513,11 +606,13 @@ public final class DocConverter {
 		if (row == null || row.length == 0) {
 			return true;
 		}
+
 		for (String col : row) {
 			if (col != null && !col.isBlank()) {
 				return false;
 			}
 		}
+
 		return true;
 	}
 
@@ -533,21 +628,22 @@ public final class DocConverter {
 		if (e instanceof DocConversionException conversionException) {
 			return conversionException;
 		}
+
 		return new DocConversionException(message, e);
 	}
 
 	private static void appendEscaped(StringBuilder xml, String value) {
 		for (int i = 0, len = value.length(); i < len; i++) {
 			char c = value.charAt(i);
+
 			switch (c) {
 				case '<'  -> xml.append("&lt;");
 				case '>'  -> xml.append("&gt;");
 				case '&'  -> xml.append("&amp;");
 				case '"'  -> xml.append("&quot;");
 				case '\'' -> xml.append("&apos;");
-				default   -> xml.append(c);
+				default    -> xml.append(c);
 			}
 		}
 	}
-
 }
