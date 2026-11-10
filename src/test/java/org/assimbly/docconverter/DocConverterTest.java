@@ -3,62 +3,29 @@ package org.assimbly.docconverter;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.dataformat.yaml.YAMLMapper;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
 import org.xmlunit.assertj.XmlAssert;
 import org.xmlunit.builder.Input;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.InputStream;
-import java.io.Reader;
-import java.io.StringReader;
-import java.net.URI;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assimbly.docconverter.DocConverter.convertDocToString;
-import static org.assimbly.docconverter.DocConverter.convertFileToString;
-import static org.assimbly.docconverter.DocConverter.convertFileToURI;
-import static org.assimbly.docconverter.DocConverter.convertFileToURL;
-import static org.assimbly.docconverter.DocConverter.convertListToString;
-import static org.assimbly.docconverter.DocConverter.convertNodeToString;
-import static org.assimbly.docconverter.DocConverter.convertObjectToJSONString;
-import static org.assimbly.docconverter.DocConverter.convertObjectToString;
-import static org.assimbly.docconverter.DocConverter.convertReaderToString;
-import static org.assimbly.docconverter.DocConverter.convertStreamToString;
-import static org.assimbly.docconverter.DocConverter.convertStringToDoc;
-import static org.assimbly.docconverter.DocConverter.convertStringToFile;
-import static org.assimbly.docconverter.DocConverter.convertStringToList;
-import static org.assimbly.docconverter.DocConverter.convertStringToNode;
-import static org.assimbly.docconverter.DocConverter.convertStringToReader;
-import static org.assimbly.docconverter.DocConverter.convertStringToSource;
-import static org.assimbly.docconverter.DocConverter.convertStringToStream;
 import static org.assimbly.docconverter.DocConverter.isJson;
 import static org.assimbly.docconverter.DocConverter.isXML;
 import static org.assimbly.docconverter.DocConverter.isYaml;
+import static org.assimbly.docconverter.StringConverter.stringToDoc;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class DocConverterTest {
 
 	private static final YAMLMapper YAML_MAPPER = YAMLMapper.builder().build();
 	private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {};
-
-	private static final String ROOT_XML = "<root><child>value</child></root>";
-	private static final String NODE_XML = "<child>value</child>";
 
 	private static final String SIMPLE_XML =
 			"<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
@@ -96,459 +63,414 @@ class DocConverterTest {
 			""";
 
 	@Test
-	void convertXmlToJson() throws Exception {
+	void xmlToJson() throws Exception {
 		String expected = "{\"headers\":{\"Content-Type\":{\"type\":\"header\",\"language\":\"constant\",\"value\":\"text/xml\"}}}";
-		JSONAssert.assertEquals(expected, DocConverter.convertXmlToJson(SIMPLE_XML), JSONCompareMode.LENIENT);
+		String actual = DocConverter.xmlToJson(SIMPLE_XML);
+		JSONAssert.assertEquals(expected, actual, JSONCompareMode.LENIENT);
+		assertThat(actual).isNotBlank();
 	}
 
 	@Test
-	void convertXmlToYaml() {
+	void xmlToYaml() {
 		Map<String, Object> expected = YAML_MAPPER.readValue(XML_AS_YAML, MAP_TYPE);
-		Map<String, Object> actual = YAML_MAPPER.readValue(DocConverter.convertXmlToYaml(SIMPLE_XML), MAP_TYPE);
+		Map<String, Object> actual = YAML_MAPPER.readValue(DocConverter.xmlToYaml(SIMPLE_XML), MAP_TYPE);
 		assertEquals(expected, actual);
 	}
 
 	@Test
-	void convertXmlToCsv() throws Exception {
-		assertCsvEquals(SIMPLE_CSV, DocConverter.convertXmlToCsv(CSV_AS_XML));
+	void xmlToCsv() throws Exception {
+		assertCsvEquals(SIMPLE_CSV, DocConverter.xmlToCsv(CSV_AS_XML));
 	}
 
 	@Test
-	void convertJsonToYaml() {
+	void jsonToYaml() {
 		Map<String, Object> expected = YAML_MAPPER.readValue(SIMPLE_YAML, MAP_TYPE);
-		Map<String, Object> actual = YAML_MAPPER.readValue(DocConverter.convertJsonToYaml(SIMPLE_JSON), MAP_TYPE);
+		Map<String, Object> actual = YAML_MAPPER.readValue(DocConverter.jsonToYaml(SIMPLE_JSON), MAP_TYPE);
 		assertEquals(expected, actual);
 	}
 
 	@Test
-	void convertJsonToXml() {
+	void jsonToXml() {
 		String expected = "<headers><Content-Type><type>header</type><language>constant</language><content>text/xml</content></Content-Type></headers>";
-		XmlAssert.assertThat(Input.fromString(DocConverter.convertJsonToXml(SIMPLE_JSON)))
+		XmlAssert.assertThat(Input.fromString(DocConverter.jsonToXml(SIMPLE_JSON)))
 				.and(Input.fromString(expected)).ignoreWhitespace().areSimilar();
 	}
 
 	@Test
-	void convertJsonArrayToXml() throws Exception {
-		String xml = DocConverter.convertJsonToXml(SIMPLE_JSON_ARRAY);
+	void jsonArrayToXml() {
+		String xml = DocConverter.jsonToXml(SIMPLE_JSON_ARRAY);
 		assertThat(xml).contains("Ford").contains("BMW").contains("Fiat");
-		assertThat(convertStringToDoc(xml).getDocumentElement().getTagName()).isEqualTo("ArrayList");
+		assertThat(stringToDoc(xml).getDocumentElement().getTagName()).isEqualTo("ArrayList");
 	}
 
 	@Test
-	void convertJsonToCsv() throws Exception {
-		assertCsvEquals(SIMPLE_CSV, DocConverter.convertJsonToCsv(CSV_AS_JSON));
+	void jsonToCsv() throws Exception {
+		assertCsvEquals(SIMPLE_CSV, DocConverter.jsonToCsv(CSV_AS_JSON));
 	}
 
 	@Test
-	void convertYamlToXml() {
+	void yamlToXml() {
 		String expected = "<headers><Content-Type><language>constant</language><type>header</type><content>text/xml</content></Content-Type></headers>";
-		XmlAssert.assertThat(Input.fromString(DocConverter.convertYamlToXml(SIMPLE_YAML)))
+		XmlAssert.assertThat(Input.fromString(DocConverter.yamlToXml(SIMPLE_YAML)))
 				.and(Input.fromString(expected)).ignoreWhitespace().areSimilar();
 	}
 
 	@Test
-	void convertYamlToJson() throws Exception {
+	void yamlToJson() throws Exception {
 		String expected = "{\"headers\":{\"Content-Type\":{\"language\":\"constant\",\"type\":\"header\",\"content\":\"text/xml\"}}}";
-		JSONAssert.assertEquals(expected, DocConverter.convertYamlToJson(SIMPLE_YAML), JSONCompareMode.LENIENT);
+		String actual = DocConverter.yamlToJson(SIMPLE_YAML);
+		JSONAssert.assertEquals(expected, actual, JSONCompareMode.LENIENT);
+		assertThat(actual).isNotBlank();
 	}
 
 	@Test
-	void convertYamlToCsv() throws Exception {
-		assertCsvEquals(SIMPLE_CSV, DocConverter.convertYamlToCsv(DocConverter.convertCsvToYaml(SIMPLE_CSV)));
+	void yamlToCsv() throws Exception {
+		assertCsvEquals(SIMPLE_CSV, DocConverter.yamlToCsv(DocConverter.csvToYaml(SIMPLE_CSV)));
 	}
 
 	@Test
-	void convertCsvToXml() {
-		XmlAssert.assertThat(Input.fromString(DocConverter.convertCsvToXml(SIMPLE_CSV)))
+	void csvToXml() {
+		XmlAssert.assertThat(Input.fromString(DocConverter.csvToXml(SIMPLE_CSV)))
 				.and(CSV_AS_XML).ignoreWhitespace().areIdentical();
 	}
 
 	@Test
-	void convertCsvToJson() throws Exception {
-		JSONAssert.assertEquals(CSV_AS_JSON, DocConverter.convertCsvToJson(SIMPLE_CSV), JSONCompareMode.LENIENT);
+	void csvToJson() throws Exception {
+		String actual = DocConverter.csvToJson(SIMPLE_CSV);
+		JSONAssert.assertEquals(CSV_AS_JSON, actual, JSONCompareMode.LENIENT);
+		assertThat(actual).isNotBlank();
 	}
 
 	@Test
-	void convertCsvToYaml() throws Exception {
-		JSONAssert.assertEquals(CSV_AS_JSON, DocConverter.convertYamlToJson(DocConverter.convertCsvToYaml(SIMPLE_CSV)), JSONCompareMode.LENIENT);
+	void csvToYaml() throws Exception {
+		String actual = DocConverter.yamlToJson(DocConverter.csvToYaml(SIMPLE_CSV));
+		JSONAssert.assertEquals(CSV_AS_JSON, actual, JSONCompareMode.LENIENT);
+		assertThat(actual).isNotBlank();
 	}
 
 	@Test
-	void roundTrip_jsonToYamlAndBack() throws Exception {
-		String yaml = DocConverter.convertJsonToYaml(SIMPLE_JSON);
-		String backJson = DocConverter.convertYamlToJson(yaml);
+	void roundTripJsonToYamlAndBack() throws Exception {
+		String yaml = DocConverter.jsonToYaml(SIMPLE_JSON);
+		String backJson = DocConverter.yamlToJson(yaml);
 		JSONAssert.assertEquals(SIMPLE_JSON, backJson, JSONCompareMode.LENIENT);
+		assertThat(backJson).isNotBlank();
 	}
 
 	@Test
-	void roundTrip_yamlToXmlAndBack() {
-		String xml = DocConverter.convertYamlToXml(SIMPLE_YAML);
-		String backYaml = DocConverter.convertXmlToYaml(xml);
+	void roundTripYamlToXmlAndBack() {
+		String xml = DocConverter.yamlToXml(SIMPLE_YAML);
+		String backYaml = DocConverter.xmlToYaml(xml);
 		Map<String, Object> expected = YAML_MAPPER.readValue(SIMPLE_YAML, MAP_TYPE);
 		Map<String, Object> actual = YAML_MAPPER.readValue(backYaml, MAP_TYPE);
 		assertEquals(expected, actual);
 	}
 
 	@Test
-	void roundTrip_csvToJsonAndBack() throws Exception {
-		String json = DocConverter.convertCsvToJson(SIMPLE_CSV);
-		assertCsvEquals(SIMPLE_CSV, DocConverter.convertJsonToCsv(json));
+	void roundTripCsvToJsonAndBack() throws Exception {
+		String json = DocConverter.csvToJson(SIMPLE_CSV);
+		assertCsvEquals(SIMPLE_CSV, DocConverter.jsonToCsv(json));
 	}
 
 	@Test
-	void convertJsonToXml_escapesAmpersandAndAngleBrackets() {
+	void jsonToXmlEscapesAmpersandAndAngleBrackets() {
 		String json = "{\"note\":\"a & b < c > d\"}";
-		String xml = DocConverter.convertJsonToXml(json);
+		String xml = DocConverter.jsonToXml(json);
 		assertThat(xml).doesNotContain(" & ")
 				.doesNotContain(" < ");
 	}
 
 	@Test
-	void convertXmlToJson_preservesUnicode() throws Exception {
+	void xmlToJsonPreservesUnicode() throws Exception {
 		String xml = "<data><label>中文テスト</label></data>";
-		String json = DocConverter.convertXmlToJson(xml);
+		String json = DocConverter.xmlToJson(xml);
 		assertThat(json).contains("中文テスト");
 	}
 
 	@Test
-	void convertJsonToYaml_preservesUnicode() {
+	void jsonToYamlPreservesUnicode() {
 		String json = "{\"message\":\"héllo wörld\"}";
-		String yaml = DocConverter.convertJsonToYaml(json);
+		String yaml = DocConverter.jsonToYaml(json);
 		assertThat(yaml).contains("héllo wörld");
 	}
 
 	@Test
-	void convertXmlToJson_preservesQuotesInAttributeValues() throws Exception {
+	void xmlToJsonPreservesQuotesInAttributeValues() throws Exception {
 		String xml = "<item type=\"it&apos;s a test\">value</item>";
-		String json = DocConverter.convertXmlToJson(xml);
+		String json = DocConverter.xmlToJson(xml);
 		assertThat(json).isNotEmpty();
 	}
 
 	@Test
-	void convertJsonToXml_handlesNumericValues() {
+	void jsonToXmlHandlesNumericValues() {
 		String json = "{\"stats\":{\"count\":42,\"ratio\":3.14}}";
-		String xml = DocConverter.convertJsonToXml(json);
+		String xml = DocConverter.jsonToXml(json);
 		assertThat(xml).contains("42").contains("3.14");
 	}
 
 	@Test
-	void convertJsonToXml_handlesBooleanValues() {
+	void jsonToXmlHandlesBooleanValues() {
 		String json = "{\"flags\":{\"active\":true,\"deleted\":false}}";
-		String xml = DocConverter.convertJsonToXml(json);
+		String xml = DocConverter.jsonToXml(json);
 		assertThat(xml).contains("true").contains("false");
 	}
 
 	@Test
-	void convertYamlToJson_handlesBooleanAndNumericValues() throws Exception {
+	void yamlToJsonHandlesBooleanAndNumericValues() throws Exception {
 		String yaml = "---\nactive: true\ncount: 7\nratio: 2.5\n";
-		String json = DocConverter.convertYamlToJson(yaml);
+		String json = DocConverter.yamlToJson(yaml);
 		JSONAssert.assertEquals("{\"active\":true,\"count\":7,\"ratio\":2.5}", json, JSONCompareMode.STRICT);
+		assertThat(json).isNotBlank();
 	}
 
 	@Test
-	void convertJsonToXml_handlesFlatStructure() throws Exception {
+	void jsonToXmlHandlesFlatStructure() {
 		String json = "{\"key\":\"value\"}";
-		String xml = DocConverter.convertJsonToXml(json);
+		String xml = DocConverter.jsonToXml(json);
 		assertThat(xml).contains("key").contains("value");
-		assertThat(convertStringToDoc(xml).getDocumentElement().getTagName()).isEqualTo("key");
+		assertThat(stringToDoc(xml).getDocumentElement().getTagName()).isEqualTo("key");
 	}
 
 	@Test
-	void convertXmlToJson_handlesDeeplyNested() throws Exception {
+	void xmlToJsonHandlesDeeplyNested() throws Exception {
 		String xml = "<a><b><c><d>deep</d></c></b></a>";
-		String json = DocConverter.convertXmlToJson(xml);
+		String json = DocConverter.xmlToJson(xml);
 		JSONAssert.assertEquals("{\"a\":{\"b\":{\"c\":{\"d\":\"deep\"}}}}", json, JSONCompareMode.LENIENT);
+		assertThat(json).isNotBlank();
 	}
 
 	@Test
-	void convertJsonToYaml_handlesArray() throws Exception {
+	void jsonToYamlHandlesArray() throws Exception {
 		String json = "{\"items\":[\"one\",\"two\",\"three\"]}";
-		String yaml = DocConverter.convertJsonToYaml(json);
-		String backJson = DocConverter.convertYamlToJson(yaml);
+		String yaml = DocConverter.jsonToYaml(json);
+		String backJson = DocConverter.yamlToJson(yaml);
 		JSONAssert.assertEquals(json, backJson, JSONCompareMode.LENIENT);
-	}
-
-	@Test
-	void convertXmlToJson_returnsEmptyObjectForEmptyInput() throws Exception {
-		assertThat(DocConverter.convertXmlToJson("")).isEqualTo("{}");
+		assertThat(backJson).isNotBlank();
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = {"", "   "})
-	void convertJsonToXml_throwsOrReturnsEmptyOnBlankInput(String blank) {
-		Assertions.assertEquals("", DocConverter.convertJsonToXml(blank));
+	@MethodSource("emptyDocuments")
+	void jsonTargetTreatsEmptyInputAsEmptyObject(String input) {
+		assertThat(DocConverter.xmlToJson(input)).isEqualTo("{}");
+		assertThat(DocConverter.yamlToJson(input)).isEqualTo("{}");
+		assertThat(DocConverter.csvToJson(input)).isEqualTo("{}");
+	}
+
+	@ParameterizedTest
+	@MethodSource("emptyDocuments")
+	void yamlTargetTreatsEmptyInputAsEmptyObject(String input) {
+		assertThat(DocConverter.xmlToYaml(input)).isEqualTo("{}");
+		assertThat(DocConverter.jsonToYaml(input)).isEqualTo("{}");
+		assertThat(DocConverter.csvToYaml(input)).isEqualTo("{}");
+	}
+
+	@ParameterizedTest
+	@MethodSource("emptyDocuments")
+	void xmlTargetTreatsEmptyInputAsEmptyRoot(String input) {
+		assertEmptyXml(DocConverter.jsonToXml(input));
+		assertEmptyXml(DocConverter.yamlToXml(input));
+		assertEmptyXml(DocConverter.csvToXml(input));
+	}
+
+	@ParameterizedTest
+	@MethodSource("emptyDocuments")
+	void csvTargetTreatsEmptyInputAsEmptyString(String input) {
+		assertThat(DocConverter.xmlToCsv(input)).isEmpty();
+		assertThat(DocConverter.jsonToCsv(input)).isEmpty();
+		assertThat(DocConverter.yamlToCsv(input)).isEmpty();
 	}
 
 	@Test
-	void convertXmlToJson_throwsOnMalformedXml() {
-		assertThatThrownBy(() -> DocConverter.convertXmlToJson("<unclosed>"))
-				.isInstanceOf(Exception.class);
+	void jsonEmptyObjectToXmlUsesNormalConversion() {
+		String xml = DocConverter.jsonToXml("{}");
+		assertThat(xml).isNotBlank();
+		assertThat(stringToDoc(xml).getDocumentElement()).isNotNull();
 	}
 
 	@Test
-	void convertJsonToXml_throwsOnMalformedJson() {
-		assertThatThrownBy(() -> DocConverter.convertJsonToXml("{bad json"))
-				.isInstanceOf(Exception.class);
+	void jsonEmptyArrayToXmlUsesArrayListRoot() {
+		String xml = DocConverter.jsonToXml("[]");
+		assertThat(stringToDoc(xml).getDocumentElement().getTagName()).isEqualTo("ArrayList");
 	}
 
 	@Test
-	void convertYamlToJson_throwsOnMalformedYaml() {
+	void xmlEmptyRootToJsonIsNotCanonicalEmptyJson() {
+		String json = DocConverter.xmlToJson("<root/>");
+		assertThat(json).isNotEqualTo("{}").contains("root");
+	}
+
+	@Test
+	void xmlToJsonThrowsOnMalformedXml() {
+		assertThatThrownBy(() -> DocConverter.xmlToJson("<unclosed>"))
+				.isInstanceOf(DocConversionException.class)
+				.hasMessage("Failed to convert XML to JSON")
+				.hasCauseInstanceOf(Exception.class);
+	}
+
+	@Test
+	void jsonToXmlThrowsOnMalformedJson() {
+		assertThatThrownBy(() -> DocConverter.jsonToXml("{bad json"))
+				.isInstanceOf(DocConversionException.class)
+				.hasMessage("Failed to convert JSON to XML")
+				.hasCauseInstanceOf(Exception.class);
+	}
+
+	@Test
+	void yamlToJsonThrowsOnMalformedYaml() {
 		String badYaml = """
 						key: value
 						  invalid_indentation: true""";
 
-		assertThatThrownBy(() -> DocConverter.convertYamlToJson(badYaml))
-				.isInstanceOf(Exception.class);
+		assertThatThrownBy(() -> DocConverter.yamlToJson(badYaml))
+				.isInstanceOf(DocConversionException.class)
+				.hasMessage("Failed to convert YAML to JSON")
+				.hasCauseInstanceOf(Exception.class);
 	}
 
 	@Test
-	void isXML_validDocument_returnsTrue() {
+	void isXMLValidDocumentReturnsTrue() {
 		assertThat(isXML("<root><child/></root>")).isTrue();
 	}
 
 	@Test
-	void isXML_jsonString_returnsFalse() {
+	void isXMLJsonStringReturnsFalse() {
 		assertThat(isXML("{\"key\": \"value\"}")).isFalse();
 	}
 
 	@Test
-	void isXML_nullOrBlank_returnsFalse() {
+	void isXMLNullOrBlankReturnsFalse() {
 		assertThat(isXML(null)).isFalse();
 		assertThat(isXML("   ")).isFalse();
 	}
 
 	@Test
-	void isJson_validObject_returnsTrue() {
+	void isJsonValidObjectReturnsTrue() {
 		assertThat(isJson("{\"key\": \"value\"}")).isTrue();
 	}
 
 	@Test
-	void isJson_validArray_returnsTrue() {
+	void isJsonValidArrayReturnsTrue() {
 		assertThat(isJson("[1, 2, 3]")).isTrue();
 	}
 
 	@Test
-	void isJson_nestedObject_returnsTrue() {
+	void isJsonNestedObjectReturnsTrue() {
 		assertThat(isJson("{\"outer\": {\"inner\": 42}}")).isTrue();
 	}
 
 	@Test
-	void isJson_validWithLeadingWhitespace_returnsTrue() {
+	void isJsonValidWithLeadingWhitespaceReturnsTrue() {
 		assertThat(isJson("   {\"key\": \"value\"}")).isTrue();
 	}
 
 	@Test
-	void isJson_null_returnsFalse() {
+	void isJsonNullReturnsFalse() {
 		assertThat(isJson(null)).isFalse();
 	}
 
 	@Test
-	void isJson_blank_returnsFalse() {
+	void isJsonBlankReturnsFalse() {
 		assertThat(isJson("   ")).isFalse();
 	}
 
 	@Test
-	void isJson_plainText_returnsFalse() {
+	void isJsonPlainTextReturnsFalse() {
 		assertThat(isJson("hello world")).isFalse();
 	}
 
 	@Test
-	void isJson_xmlString_returnsFalse() {
+	void isJsonXmlStringReturnsFalse() {
 		assertThat(isJson("<root><child/></root>")).isFalse();
 	}
 
 	@Test
-	void isJson_yamlString_returnsFalse() {
+	void isJsonYamlStringReturnsFalse() {
 		assertThat(isJson("key: value")).isFalse();
 	}
 
 	@Test
-	void isJson_malformedObject_returnsFalse() {
+	void isJsonMalformedObjectReturnsFalse() {
 		assertThat(isJson("{key: value}")).isFalse();
 	}
 
 	@Test
-	void isJson_unclosedObject_returnsFalse() {
+	void isJsonUnclosedObjectReturnsFalse() {
 		assertThat(isJson("{\"key\": \"value\"")).isFalse();
 	}
 
 	@Test
-	void isJson_emptyObject_returnsTrue() {
+	void isJsonEmptyObjectReturnsTrue() {
 		assertThat(isJson("{}")).isTrue();
 	}
 
 	@Test
-	void isJson_emptyArray_returnsTrue() {
+	void isJsonEmptyArrayReturnsTrue() {
 		assertThat(isJson("[]")).isTrue();
 	}
 
 	@Test
-	void isYaml_simpleKeyValue_returnsTrue() {
+	void isYamlSimpleKeyValueReturnsTrue() {
 		assertThat(isYaml("key: value")).isTrue();
 	}
 
 	@Test
-	void isYaml_multipleKeyValues_returnsTrue() {
+	void isYamlMultipleKeyValuesReturnsTrue() {
 		assertThat(isYaml("key1: value1\nkey2: value2")).isTrue();
 	}
 
 	@Test
-	void isYaml_withDocumentMarker_returnsTrue() {
+	void isYamlWithDocumentMarkerReturnsTrue() {
 		assertThat(isYaml("---\nkey: value")).isTrue();
 	}
 
 	@Test
-	void isYaml_nestedStructure_returnsTrue() {
+	void isYamlNestedStructureReturnsTrue() {
 		assertThat(isYaml("parent:\n  child: value")).isTrue();
 	}
 
 	@Test
-	void isYaml_list_returnsTrue() {
+	void isYamlListReturnsTrue() {
 		assertThat(isYaml("- item1\n- item2\n- item3")).isTrue();
 	}
 
 	@Test
-	void isYaml_validWithLeadingWhitespace_returnsTrue() {
+	void isYamlValidWithLeadingWhitespaceReturnsTrue() {
 		assertThat(isYaml("   key: value")).isTrue();
 	}
 
 	@Test
-	void isYaml_null_returnsFalse() {
+	void isYamlNullReturnsFalse() {
 		assertThat(isYaml(null)).isFalse();
 	}
 
 	@Test
-	void isYaml_blank_returnsFalse() {
+	void isYamlBlankReturnsFalse() {
 		assertThat(isYaml("   ")).isFalse();
 	}
 
 	@Test
-	void isYaml_invalidTabIndentation_returnsFalse() {
+	void isYamlInvalidTabIndentationReturnsFalse() {
 		assertThat(isYaml("key:\n\tchild: value")).isFalse();
 	}
 
 	@Test
-	void isYaml_unclosedQuote_returnsFalse() {
+	void isYamlUnclosedQuoteReturnsFalse() {
 		assertThat(isYaml("key: \"unclosed")).isFalse();
 	}
 
 	@Test
-	void isYaml_duplicateKeys_returnsTrue() {
+	void isYamlDuplicateKeysReturnsTrue() {
 		assertThat(isYaml("key: value1\nkey: value2")).isTrue();
 	}
 
-	@Test
-	void convertStreamToString_returnsOriginalContent() {
-		InputStream stream = new ByteArrayInputStream("hello world".getBytes(StandardCharsets.UTF_8));
-		assertThat(convertStreamToString(stream)).isEqualTo("hello world");
+	private static Stream<String> emptyDocuments() {
+		return Stream.of(null, "", "   ");
 	}
 
-	@Test
-	void convertStringToStream_returnsReadableStream() throws Exception {
-		InputStream stream = convertStringToStream("hello world");
-		assertThat(new String(stream.readAllBytes(), StandardCharsets.UTF_8)).isEqualTo("hello world");
-	}
-
-	@Test
-	void convertDocToString_containsRootElement() throws Exception {
-		Document doc = convertStringToDoc(ROOT_XML);
-		assertThat(convertDocToString(doc)).contains("<root>", "<child>value</child>");
-	}
-
-	@Test
-	void convertStringToDoc_parsesRootElement() throws Exception {
-		Document doc = convertStringToDoc(ROOT_XML);
-		assertThat(doc.getDocumentElement().getTagName()).isEqualTo("root");
-	}
-
-	@Test
-	void convertNodeToString_returnsNodeMarkup() throws Exception {
-		Document doc = convertStringToDoc(ROOT_XML);
-		Node child = doc.getDocumentElement().getFirstChild();
-		assertThat(convertNodeToString(child)).contains("child", "value");
-	}
-
-	@Test
-	void convertStringToNode_parsesTagName() throws Exception {
-		Node node = convertStringToNode(NODE_XML);
-		assertThat(node.getNodeName()).isEqualTo("child");
-	}
-
-	@Test
-	void convertFileToString_defaultEncoding_returnsContent(@TempDir Path tempDir) throws Exception {
-		Path file = tempDir.resolve("test.txt");
-		java.nio.file.Files.writeString(file, "file content");
-		assertThat(convertFileToString(file.toString())).isEqualTo("file content");
-	}
-
-	@Test
-	void convertFileToString_explicitEncoding_returnsContent(@TempDir Path tempDir) throws Exception {
-		Path file = tempDir.resolve("test.txt");
-		java.nio.file.Files.writeString(file, "file content");
-		assertThat(convertFileToString(file.toString(), StandardCharsets.UTF_8)).isEqualTo("file content");
-	}
-
-	@Test
-	void convertStringToFile_writesReadableFile(@TempDir Path tempDir) throws Exception {
-		Path file = tempDir.resolve("output.txt");
-		convertStringToFile(file.toString(), "written content");
-		assertThat(java.nio.file.Files.readString(file)).isEqualTo("written content");
-	}
-
-	@Test
-	void convertStringToSource_returnsNonNullSource() {
-		assertThat(convertStringToSource("<root/>")).isNotNull();
-	}
-
-	@Test
-	void convertListToString_joinsWithComma() {
-		assertThat(convertListToString(List.of("a", "b", "c"))).isEqualTo("a,b,c");
-	}
-
-	@Test
-	void convertStringToList_splitsOnComma() {
-		assertThat(convertStringToList("a,b,c")).containsExactly("a", "b", "c");
-	}
-
-	@Test
-	void convertStringToReader_returnsReadableContent() throws Exception {
-		Reader reader = convertStringToReader("hello");
-		assertThat(new BufferedReader(reader).readLine()).isEqualTo("hello");
-	}
-
-	@Test
-	void convertReaderToString_returnsOriginalContent() throws Exception {
-		assertThat(convertReaderToString(new StringReader("hello"))).isEqualTo("hello");
-	}
-
-	@Test
-	void convertObjectToString_returnsStringRepresentation() {
-		assertThat(convertObjectToString(42)).isEqualTo("42");
-	}
-
-	@Test
-	void convertObjectToJSONString_serializesFields() {
-		record Person(String name, int age) {}
-		assertThat(convertObjectToJSONString(new Person("Alice", 30)))
-				.contains("\"name\"", "Alice", "\"age\"", "30");
-	}
-
-	@Test
-	void convertFileToURI_returnsFileSchemeURI(@TempDir Path tempDir) throws Exception {
-		File file = tempDir.resolve("test.txt").toFile();
-		boolean created = file.createNewFile();
-		assertThat(created).isTrue();
-		URI uri = convertFileToURI(file);
-		assertThat(uri.getScheme()).isEqualTo("file");
-	}
-
-	@Test
-	void convertFileToURL_returnsFileSchemeURL(@TempDir Path tempDir) throws Exception {
-		File file = tempDir.resolve("test.txt").toFile();
-		boolean created = file.createNewFile();
-		assertThat(created).isTrue();
-		URL url = convertFileToURL(file);
-		assertThat(url.getProtocol()).isEqualTo("file");
+	private static void assertEmptyXml(String xml) {
+		XmlAssert.assertThat(Input.fromString(xml))
+				.and(Input.fromString("<root/>"))
+				.ignoreWhitespace()
+				.areSimilar();
 	}
 
 	private static void assertCsvEquals(String expected, String actual) {

@@ -35,6 +35,9 @@ buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
 
+# Generated reports
+htmlReport/
+
 # JMH benchmark output (used in your pom)
 benchmarks.jar
 jmh-result.json

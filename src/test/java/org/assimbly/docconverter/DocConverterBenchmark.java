@@ -1,9 +1,29 @@
 package org.assimbly.docconverter;
 
-import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.Main;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Fork;
+import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Warmup;
+
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-
+/**
+ * JMH benchmarks for DocConverter.
+ * <pre>
+ *   mvn test-compile -Pbenchmark
+ *   mvn test -Pbenchmark
+ *   mvn test -Pbenchmark -Dbenchmark=jsonToXml
+ * </pre>
+ */
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
@@ -12,105 +32,89 @@ import java.util.concurrent.TimeUnit;
 @Fork(0)
 public class DocConverterBenchmark {
 
-    /* Usage
+	private static final String SIMPLE_XML = "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
+			"<headers><Content-Type type=\"header\" language=\"constant\">text/xml</Content-Type></headers>";
+	private static final String SIMPLE_JSON = "{\"headers\":{\"Content-Type\":{\"type\":\"header\",\"language\":\"constant\",\"content\":\"text/xml\"}}}";
+	private static final String SIMPLE_YAML = "---\nheaders:\n  Content-Type:\n    language: constant\n    type: header\n    content: text/xml\n";
+	private static final String SIMPLE_CSV = "1,FAB0d41d5b5d22c,Ferrell LLC\n2,6A7EdDEA9FaDC52,Mckinney\n";
 
-    Compile first:
+	private String csvAsXml;
+	private String csvAsJson;
+	private String csvAsYaml;
 
-    mvn clean test-compile -Pbenchmark2
+	@Setup
+	public void setup() {
+		csvAsXml = DocConverter.csvToXml(SIMPLE_CSV);
+		csvAsJson = DocConverter.csvToJson(SIMPLE_CSV);
+		csvAsYaml = DocConverter.csvToYaml(SIMPLE_CSV);
+	}
 
-    Run the benchmark as:
+	@Benchmark
+	public String xmlToJson() {
+		return DocConverter.xmlToJson(SIMPLE_XML);
+	}
 
-    mvn test -Pbenchmark2
+	@Benchmark
+	public String xmlToYaml() {
+		return DocConverter.xmlToYaml(SIMPLE_XML);
+	}
 
-    Run a specific benchmark:
+	@Benchmark
+	public String xmlToCsv() {
+		return DocConverter.xmlToCsv(csvAsXml);
+	}
 
-    mvn test -Pbenchmark2 -Dbenchmark=jsonToXml
+	@Benchmark
+	public String jsonToXml() {
+		return DocConverter.jsonToXml(SIMPLE_JSON);
+	}
 
-    */
+	@Benchmark
+	public String jsonToYaml() {
+		return DocConverter.jsonToYaml(SIMPLE_JSON);
+	}
 
-    private static final String SIMPLE_XML = "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
-            "<headers><Content-Type type=\"header\" language=\"constant\">text/xml</Content-Type></headers>";
-    private static final String SIMPLE_JSON = "{\"headers\":{\"Content-Type\":{\"type\":\"header\",\"language\":\"constant\",\"content\":\"text/xml\"}}}";
-    private static final String SIMPLE_YAML = "---\nheaders:\n  Content-Type:\n    language: constant\n    type: header\n    content: text/xml\n";
-    private static final String SIMPLE_CSV  = "1,FAB0d41d5b5d22c,Ferrell LLC\n2,6A7EdDEA9FaDC52,Mckinney\n";
+	@Benchmark
+	public String jsonToCsv() {
+		return DocConverter.jsonToCsv(csvAsJson);
+	}
 
-    private String csvAsXml;
-    private String csvAsJson;
-    private String csvAsYaml;
+	@Benchmark
+	public String yamlToJson() {
+		return DocConverter.yamlToJson(SIMPLE_YAML);
+	}
 
-    @Setup
-    public void setup() throws Exception {
-        csvAsXml = DocConverter.convertCsvToXml(SIMPLE_CSV);
-        csvAsJson = DocConverter.convertCsvToJson(SIMPLE_CSV);
-        csvAsYaml = DocConverter.convertCsvToYaml(SIMPLE_CSV);
-    }
+	@Benchmark
+	public String yamlToXml() {
+		return DocConverter.yamlToXml(SIMPLE_YAML);
+	}
 
-    @Benchmark
-    public String xmlToJson() throws Exception {
-        return DocConverter.convertXmlToJson(SIMPLE_XML);
-    }
+	@Benchmark
+	public String yamlToCsv() {
+		return DocConverter.yamlToCsv(csvAsYaml);
+	}
 
-    @Benchmark
-    public String xmlToYaml() {
-        return DocConverter.convertXmlToYaml(SIMPLE_XML);
-    }
+	@Benchmark
+	public String csvToXml() {
+		return DocConverter.csvToXml(SIMPLE_CSV);
+	}
 
-    @Benchmark
-    public String xmlToCsv() throws Exception {
-        return DocConverter.convertXmlToCsv(csvAsXml);
-    }
+	@Benchmark
+	public String csvToJson() {
+		return DocConverter.csvToJson(SIMPLE_CSV);
+	}
 
-    @Benchmark
-    public String jsonToXml() {
-        return DocConverter.convertJsonToXml(SIMPLE_JSON);
-    }
+	@Benchmark
+	public String csvToYaml() {
+		return DocConverter.csvToYaml(SIMPLE_CSV);
+	}
 
-    @Benchmark
-    public String jsonToYaml() {
-        return DocConverter.convertJsonToYaml(SIMPLE_JSON);
-    }
+	public static void main(String[] args) throws Exception {
+		List<String> sanitizedArgs = Arrays.stream(args)
+				.filter(arg -> arg != null && !arg.isEmpty() && !arg.equals("all"))
+				.toList();
 
-    @Benchmark
-    public String jsonToCsv() throws Exception {
-        return DocConverter.convertJsonToCsv(csvAsJson);
-    }
-
-    @Benchmark
-    public String yamlToJson() {
-        return DocConverter.convertYamlToJson(SIMPLE_YAML);
-    }
-
-    @Benchmark
-    public String yamlToXml() {
-        return DocConverter.convertYamlToXml(SIMPLE_YAML);
-    }
-
-    @Benchmark
-    public String yamlToCsv() throws Exception {
-        return DocConverter.convertYamlToCsv(csvAsYaml);
-    }
-
-    @Benchmark
-    public String csvToXml() {
-        return DocConverter.convertCsvToXml(SIMPLE_CSV);
-    }
-
-    @Benchmark
-    public String csvToJson() throws Exception {
-        return DocConverter.convertCsvToJson(SIMPLE_CSV);
-    }
-
-    @Benchmark
-    public String csvToYaml() {
-        return DocConverter.convertCsvToYaml(SIMPLE_CSV);
-    }
-
-    public static void main(String[] args) throws Exception {
-        java.util.List<String> sanitizedArgs = java.util.Arrays.stream(args)
-                .filter(arg -> arg != null && !arg.isEmpty() && !arg.equals("all"))
-                .toList();
-
-        org.openjdk.jmh.Main.main(sanitizedArgs.toArray(new String[0]));
-    }
+		Main.main(sanitizedArgs.toArray(new String[0]));
+	}
 
 }
